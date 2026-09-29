@@ -1,6 +1,6 @@
 <template>
   <aside class="workspace-sidebar" :class="{ open }" aria-label="WeekToDo sidebar">
-    <div class="workspace-brand"><img src="/img/logo-color.svg" alt="" /> <span>weektodo</span></div>
+    <div class="workspace-brand"><img src="/icon-mono.svg" alt="" /> <span>weektodo</span></div>
     <div v-if="showCalendar" class="mini-calendar">
       <div class="mini-calendar-heading">
         <strong>{{ monthLabel }}</strong>

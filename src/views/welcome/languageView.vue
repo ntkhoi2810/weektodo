@@ -1,7 +1,7 @@
 <template>
   <div class="row">
     <div class="col-md-4">
-      <img class="logo info-image" src="WeekToDo-Logo-Color.svg" alt="WeekToDo" title="WeekToDo Logo" width="110" />
+      <img class="logo info-image" src="/icon-mono.svg" alt="WeekToDo" title="WeekToDo Logo" width="110" />
     </div>
     <div class="col-md-8">
       <div>
@@ -85,6 +85,10 @@ export default {
 .info-image {
   margin-top: 20px;
   margin-left: 10px;
+}
+
+.dark-theme .info-image {
+  filter: invert(1);
 }
 
 .btn-footer {

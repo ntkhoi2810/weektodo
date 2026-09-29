@@ -30,7 +30,7 @@
 .workspace:not(.sidebar-visible) .workspace-sidebar { flex-basis: 0; width: 0; padding-left: 0; padding-right: 0; overflow: hidden; }
 .workspace-brand { display: flex; align-items: center; gap: 9px; padding-left: 4px; font-size: 15px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
 .workspace-brand img { width: 25px; height: 25px; }
-.dark-theme .workspace-brand img { filter: grayscale(1) brightness(3); }
+.dark-theme .workspace-brand img { filter: invert(1); }
 .mini-calendar-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 5px 8px; }
 .mini-calendar-heading strong { font-weight: 600; font-size: 13px; text-transform: capitalize; }
 .mini-calendar-heading button, .workspace-icon-button { width: 32px; height: 32px; border: 0; border-radius: 10px; background: transparent; color: var(--w-muted); display: inline-grid; place-items: center; }
@@ -113,6 +113,7 @@
 .workspace-list-panel .weekly-to-do-header { min-height: 45px; border-bottom: 1px solid var(--w-line); }
 .workspace-empty { flex: 1; display: grid; place-items: center; }
 .workspace-empty img { max-width: 240px; width: 50%; opacity: .6; }
+.dark-theme .workspace-empty img { filter: invert(1); }
 .workspace-sidebar-scrim { display: none; }
 #toDoModal .modal-dialog { position: absolute; top: 10px; bottom: 10px; right: 10px; width: min(440px, calc(100% - 20px)); max-width: none; margin: 0; transform: none; }
 #toDoModal .modal-content { height: 100%; border: 1px solid var(--w-line); border-radius: 24px; background: var(--w-surface); color: var(--w-ink); box-shadow: 0 28px 64px -18px rgba(0,0,0,.35); overflow: hidden; }

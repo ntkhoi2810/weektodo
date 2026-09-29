@@ -9,16 +9,8 @@
       <div class="d-flex flex-column align-items-center">
         <div class="d-flex justify-content-center align-items-center" style="margin-bottom: 2.2rem">
           <img
-            v-if="darkTheme"
             class="logo"
-            src="../../public/img/weektodo-isologo-white.svg"
-            alt="WeekToDo Logo"
-            style="display: inline"
-          />
-          <img
-            v-else
-            class="logo"
-            src="../../public/img/weektodo-isologo-color.svg"
+            src="/icon-mono.svg"
             alt="WeekToDo Logo"
             style="display: inline"
           />
@@ -151,8 +143,11 @@ export default {
 }
 
 .logo {
-  margin-right: 15px;
-  width: 25rem;
+  width: 8rem;
+}
+
+.dark-theme .splash-screen .logo {
+  filter: invert(1);
 }
 
 .splash-screen h1 {

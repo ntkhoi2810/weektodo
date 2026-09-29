@@ -39,7 +39,7 @@
             :c-todo-list-index="selectedListIndex" :show-custom-list="showCustomList" @todo-list-mounted="$emit('todo-list-mounted')" />
         </div>
         <div v-if="!showCalendar && !(showCustomList && lists.length && panelOpen)" class="workspace-empty">
-          <img src="/img/WeekToDoLightLogo.webp" alt="WeekToDo" />
+          <img src="/icon-mono.svg" alt="WeekToDo" />
         </div>
       </div>
     </main>

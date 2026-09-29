@@ -37,7 +37,7 @@ export default {
   createNotification(header, body, notificationSound) {
     new Notification(header, {
       body: body,
-      icon: "/favicon.ico",
+      icon: "/icon-mono.png",
       silent: true,
     });
     this.playNotificationSound(notificationSound);

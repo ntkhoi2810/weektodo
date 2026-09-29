@@ -2,17 +2,7 @@
   <div class="side-bar">
     <img
       class="logo"
-      src="/img/logo-color.svg"
-      width="42"
-      height="42"
-      alt="WeekTodo Logo"
-      data-bs-toggle="modal"
-      data-bs-target="#aboutModal"
-      :title="$t('about.about')"
-    />
-    <img
-      class="logo logo-white"
-      src="/img/logo-white.svg"
+      src="/icon-mono.svg"
       width="42"
       height="42"
       alt="WeekTodo Logo"
@@ -229,18 +219,8 @@ sidebar-icon:active {
   cursor: pointer;
 }
 
-.side-bar .logo-white {
-  display: none;
-}
-
-.dark-theme {
-  .side-bar .logo {
-    display: none;
-  }
-  .side-bar .logo-white {
-    display: block;
-    opacity: 0.95;
-  }
+.dark-theme .side-bar .logo {
+  filter: invert(1);
 }
 
 .dropdown-menu {

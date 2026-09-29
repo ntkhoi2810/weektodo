@@ -27,7 +27,7 @@ async function createWindow() {
     minWidth: 1000,
     minHeight: 600,
     show: !config.get("runInBackground"),
-    icon: path.join(__dirname, 'icon.png'),
+    icon: path.join(__dirname, 'icon-mono.png'),
     webPreferences: {
       nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
       contextIsolation: false,
@@ -287,18 +287,18 @@ function createTray() {
 
 function creatTrayIconPath() {
   const path = require("path");
-  const darkPrefix = config.get("darkTrayIcon") ? "Dark" : "";
+  const iconName = config.get("darkTrayIcon") ? "tray-icon-light" : "tray-icon";
 
   var iconPath;
   if (process.platform === "win32") {
     app.setAppUserModelId("WeekToDo");
-    iconPath = path.join(__dirname, `/trayIcon${darkPrefix}.ico`);
+    iconPath = path.join(__dirname, `${iconName}.ico`);
   } else if (process.platform === "darwin") {
-    iconPath = nativeImage.createFromPath(path.join(__dirname, `/trayIcon${darkPrefix}.png`));
+    iconPath = nativeImage.createFromPath(path.join(__dirname, `${iconName}.png`));
   } else {
     iconPath = isServeMode()
-      ? path.join(__dirname, `/bundled/trayIcon${darkPrefix}@3x.png`)
-      : path.join(__dirname, `/trayIcon${darkPrefix}@3x.png`);
+      ? path.join(__dirname, `bundled/${iconName}@3x.png`)
+      : path.join(__dirname, `${iconName}@3x.png`);
   }
   return iconPath;
 }

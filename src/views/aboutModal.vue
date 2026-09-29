@@ -10,17 +10,10 @@
           <div class="d-flex flex-column" style="text-align: center; margin-top: 10px">
             <img
               class="logo align-self-center"
-              src="/img/weektodo-isologo-color.svg"
+              src="/icon-mono.svg"
               alt="WeekToDo"
               title="WeekToDo Logo"
-              width="256"
-            />
-            <img
-              class="logo logo-white align-self-center"
-              src="/img/weektodo-isologo-white.svg"
-              alt="WeekToDo"
-              title="WeekToDo Logo"
-              width="256"
+              width="128"
             />
             <!-- <h5 style="margin-top: 15px; margin-bottom: 2px;">WeekToDo</h5> -->
             <span class="mt-3" style="font-size: 0.75rem"
@@ -131,17 +124,7 @@ a:hover {
 </style>
 
 <style>
-.logo-white {
-  display: none;
-}
-
-.dark-theme {
-  .modal-dialog .logo {
-    display: none;
-  }
-  .modal-dialog .logo-white {
-    display: block;
-    opacity: 0.95;
-  }
+.dark-theme .modal-dialog .logo {
+  filter: invert(1);
 }
 </style>
