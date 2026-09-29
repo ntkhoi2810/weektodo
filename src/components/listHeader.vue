@@ -50,6 +50,12 @@
       <li>
         <hr class="dropdown-divider" />
       </li>
+      <li v-if="completedCount">
+        <button class="dropdown-item" type="button" @click="clearCompleted" data-bs-toggle="modal"
+          data-bs-target="#clearCompletedModal">
+          <i class="bi-check2-circle"></i> <span>{{ $t('ui.clearCompleted') }}</span>
+        </button>
+      </li>
       <li>
         <button class="dropdown-item" type="button" @click="clearList" data-bs-toggle="modal"
           data-bs-target="#clearListModal">
@@ -170,6 +176,9 @@ export default {
     clearList: function () {
       this.$store.commit("setListToClear", this.id);
     },
+    clearCompleted: function () {
+      this.$store.commit("setCompletedToClear", this.id);
+    },
     copyListTasksToClipboard: async function () {
       await navigator.clipboard.writeText(this.todoListToString());
       let toast = new Toast(document.getElementById("copiedTaskToClipboard"));
@@ -192,6 +201,9 @@ export default {
     }
   },
   computed: {
+    completedCount: function () {
+      return (this.toDoList || []).filter(task => task.checked).length;
+    },
     progress: function () {
       if (!this.toDoList || !this.toDoList.length) return 0;
       return Math.round(this.toDoList.filter(task => task.checked).length / this.toDoList.length * 100);

@@ -21,7 +21,7 @@
     "postinstall": "electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps",
     "release": "electron-builder",
-    "test": "node tests/deadline.test.cjs && node tests/notes.test.cjs && node tests/time-picker.test.cjs && node tests/notifications.test.cjs"
+    "test": "node tests/deadline.test.cjs && node tests/notes.test.cjs && node tests/time-picker.test.cjs && node tests/notifications.test.cjs && node tests/clear-completed.test.cjs && node tests/sidebar-autohide.test.cjs"
   },
   "main": "background.js",
   "repository": "https://github.com/manuelernestog/weektodo",

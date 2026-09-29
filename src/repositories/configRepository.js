@@ -10,6 +10,7 @@ export default {
     } else {
       let default_config = {
         darkTheme: false,
+        autoHideSidebar: false,
         customList: true,
         calendar: true,
         firstTimeOpen: true,

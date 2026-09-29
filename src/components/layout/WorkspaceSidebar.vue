@@ -1,6 +1,12 @@
 <template>
   <aside class="workspace-sidebar" :class="{ open }" aria-label="WeekToDo sidebar">
-    <div class="workspace-brand"><img src="/icon-mono.svg" alt="" /> <span>weektodo</span></div>
+    <div class="workspace-brand"><img src="/icon-mono.svg" alt="" /> <span>weektodo</span>
+      <button v-if="desktop" type="button" class="workspace-sidebar-pin"
+        :aria-label="$t(autoHide ? 'ui.pinSidebar' : 'ui.unpinSidebar')" :title="$t(autoHide ? 'ui.pinSidebar' : 'ui.unpinSidebar')"
+        :aria-pressed="!autoHide" @click="$emit('toggle-auto-hide')">
+        <i :class="autoHide ? 'bi-pin-angle' : 'bi-pin-angle-fill'" aria-hidden="true"></i>
+      </button>
+    </div>
     <button v-if="showCalendar" type="button" class="workspace-calendar-link" :class="{ selected: activeSection === 'schedule' }"
       @click="$emit('change-date', selectedDate)"><i class="bi-calendar-week"></i> {{ $t('settings.calendar') }}</button>
     <div v-if="showCalendar" class="mini-calendar">
@@ -55,8 +61,10 @@ export default {
     activeSection: String,
     showCalendar: Boolean,
     showCustomList: Boolean,
+    autoHide: Boolean,
+    desktop: Boolean,
   },
-  emits: ["change-date", "select-list", "list-created"],
+  emits: ["change-date", "select-list", "list-created", "toggle-auto-hide"],
   data() { return { calendarMonth: moment().startOf("month") }; },
   computed: {
     lists() { return this.$store.getters.cTodoListIds || []; },

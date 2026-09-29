@@ -1,14 +1,19 @@
 <template>
-  <div class="workspace" :class="{ 'sidebar-visible': sidebarOpen, 'day-view': viewMode === 'day', 'list-view': section === 'list' }">
+  <div class="workspace" :class="{ 'sidebar-visible': sidebarOpen, 'auto-hide': autoHideSidebar && isDesktop, 'day-view': viewMode === 'day', 'list-view': section === 'list' }">
     <div v-if="sidebarOpen" class="workspace-sidebar-scrim" @click="sidebarOpen = false"></div>
+    <div v-if="autoHideSidebar && isDesktop && !sidebarOpen" class="workspace-sidebar-edge"
+      aria-hidden="true" @pointerenter="openOnEdgeHover"></div>
     <workspace-sidebar :open="sidebarOpen" :selected-date="selectedDate" :selected-list-id="selectedListId"
       :active-section="section"
       :show-calendar="showCalendar" :show-custom-list="showCustomList"
+      :auto-hide="autoHideSidebar" :desktop="isDesktop"
+      @pointerenter="cancelHide" @pointerleave="scheduleHide" @focusout="onSidebarFocusOut"
+      @toggle-auto-hide="toggleAutoHide"
       @change-date="selectDate" @select-list="selectList" @list-created="selectList" />
     <main class="workspace-main">
       <header class="workspace-header">
         <div class="workspace-heading">
-          <button type="button" class="workspace-icon-button" :aria-label="$t('ui.sidebar')" :aria-expanded="sidebarOpen" @click="sidebarOpen = !sidebarOpen"><i class="bi-layout-sidebar-inset"></i></button>
+          <button ref="sidebarToggle" type="button" class="workspace-icon-button" :aria-label="$t('ui.sidebar')" :aria-expanded="sidebarOpen" @click="toggleSidebar"><i class="bi-layout-sidebar-inset"></i></button>
           <div><h1>{{ heading }}</h1><p>{{ subheading }}</p></div>
         </div>
         <div class="workspace-controls">
@@ -50,9 +55,11 @@ export default {
   components: { WorkspaceSidebar, toDoList, CustomListView },
   props: { selectedDate: String },
   emits: ["change-date", "todo-list-mounted"],
-  data() { return { viewMode: "week", section: this.$store.getters.config.calendar ? "schedule" : "list", sidebarOpen: window.innerWidth >= 1180, selectedListId: null, todayKey: moment().format("YYYYMMDD") }; },
+  data() { return { viewMode: "week", section: this.$store.getters.config.calendar ? "schedule" : "list", sidebarOpen: !this.$store.getters.config.autoHideSidebar && window.innerWidth >= 1180, viewportWidth: window.innerWidth, hideTimer: null, selectedListId: null, todayKey: moment().format("YYYYMMDD") }; },
   computed: {
     config() { return this.$store.getters.config; },
+    autoHideSidebar() { return !!this.config.autoHideSidebar; },
+    isDesktop() { return this.viewportWidth > 900; },
     showCalendar() { return this.config.calendar; },
     showCustomList() { return this.config.customList; },
     lists() { return this.$store.getters.cTodoListIds || []; },
@@ -84,11 +91,69 @@ export default {
     weekDates: { immediate: true, handler(dates) { this.$store.commit("updateSelectedDates", dates); } },
     showCalendar(value) { if (!value && this.showCustomList) this.section = "list"; else if (value && !this.showCustomList) this.section = "schedule"; },
     showCustomList(value) { if (!value && this.showCalendar) this.section = "schedule"; else if (value && !this.showCalendar) this.section = "list"; },
+    autoHideSidebar(value) {
+      this.cancelHide();
+      if (this.isDesktop) this.sidebarOpen = !value;
+    },
+    isDesktop(value) {
+      this.cancelHide();
+      this.sidebarOpen = value && !this.autoHideSidebar && this.viewportWidth >= 1180;
+    },
     selectedDate() { this.$nextTick(this.scrollToSelected); },
     viewMode() { this.$nextTick(this.scrollToSelected); },
   },
-  mounted() { this.$nextTick(this.scrollToSelected); },
+  mounted() {
+    this.$nextTick(this.scrollToSelected);
+    window.addEventListener("resize", this.onResize);
+    window.addEventListener("keydown", this.onKeyDown);
+  },
+  beforeUnmount() {
+    this.cancelHide();
+    window.removeEventListener("resize", this.onResize);
+    window.removeEventListener("keydown", this.onKeyDown);
+  },
   methods: {
+    onResize() { this.viewportWidth = window.innerWidth; },
+    onKeyDown(event) {
+      if (event.key === "Escape" && this.autoHideSidebar && this.isDesktop && this.sidebarOpen) {
+        this.cancelHide();
+        this.sidebarOpen = false;
+        this.$refs.sidebarToggle.focus();
+      }
+    },
+    toggleSidebar() {
+      this.cancelHide();
+      this.sidebarOpen = !this.sidebarOpen;
+    },
+    toggleAutoHide() {
+      const enable = !this.autoHideSidebar;
+      this.$store.commit("updateConfig", { key: "autoHideSidebar", val: enable });
+      configRepository.update(this.config);
+      if (enable) this.$nextTick(() => this.$refs.sidebarToggle.focus());
+    },
+    openOnEdgeHover(event) {
+      if (event.pointerType === "mouse" || event.pointerType === "pen") {
+        this.cancelHide();
+        this.sidebarOpen = true;
+      }
+    },
+    cancelHide() {
+      if (this.hideTimer) clearTimeout(this.hideTimer);
+      this.hideTimer = null;
+    },
+    scheduleHide() {
+      if (!this.autoHideSidebar || !this.isDesktop) return;
+      this.cancelHide();
+      this.hideTimer = setTimeout(() => {
+        const sidebar = this.$el.querySelector(".workspace-sidebar");
+        if (!sidebar || !sidebar.contains(document.activeElement)) this.sidebarOpen = false;
+        this.hideTimer = null;
+      }, 220);
+    },
+    onSidebarFocusOut(event) {
+      if (!this.autoHideSidebar || !this.isDesktop) return;
+      if (!event.currentTarget.contains(event.relatedTarget)) this.scheduleHide();
+    },
     step(direction) { this.selectDate(moment(this.selectedDate || this.todayKey, "YYYYMMDD").add(direction * (this.viewMode === "week" ? 7 : 1), "days").format("YYYYMMDD")); },
     selectDate(date) { this.section = "schedule"; this.$emit("change-date", date); if (window.innerWidth <= 900) this.sidebarOpen = false; },
     focusDay(date) { this.viewMode = "day"; this.selectDate(date); },

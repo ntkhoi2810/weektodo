@@ -8,6 +8,7 @@
       <config-modal @change-columns="weekResetScroll" :configProp="$store.getters.config"></config-modal>
       <clear-data-modal></clear-data-modal>
       <clear-list-modal></clear-list-modal>
+      <clear-completed-modal></clear-completed-modal>
       <about-modal></about-modal>
       <donate-modal></donate-modal>
       <welcome-modal></welcome-modal>
@@ -50,6 +51,7 @@ import taskHelper from "./helpers/tasksHelper";
 import notifications from "./helpers/notifications";
 import clearDataModal from "./components/comfirmModals/clearDataModal.vue";
 import clearListModal from "./components/comfirmModals/clearListModal.vue";
+import clearCompletedModal from "./components/comfirmModals/clearCompletedModal.vue";
 import importingModal from "./views/importingModal.vue";
 import RecurrentEventsModal from "./views/RecurrentEventsModal.vue";
 import repeatingEventRepository from "./repositories/repeatingEventRepository";
@@ -75,6 +77,7 @@ export default {
     importingModal,
     ReorderCustomListsModal,
     clearListModal,
+    clearCompletedModal,
     toastMessage,
   },
   data() {

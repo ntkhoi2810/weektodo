@@ -3,6 +3,7 @@ const state = {
     clicksTimer: null,
     undoElement: null,
     listToClearId: null,
+    completedToClearId: null,
 }
 
 const getters = {
@@ -17,6 +18,9 @@ const getters = {
     },
     listToClearId(state) {
         return state.listToClearId;
+    },
+    completedToClearId(state) {
+        return state.completedToClearId;
     }
 }
 
@@ -32,6 +36,9 @@ const mutations = {
     },
     setListToClear(state, obj) {
         state.listToClearId = obj;
+    },
+    setCompletedToClear(state, listId) {
+        state.completedToClearId = listId;
     }
 }
 

@@ -30,10 +30,13 @@
 #app-container .app-body { height: 100%; }
 #app-container button:focus-visible, #app-container input:focus-visible { outline: 2px solid var(--w-ink); outline-offset: 2px; }
 .workspace { display: flex; height: 100%; min-width: 0; overflow: hidden; }
-.workspace-sidebar { flex: 0 0 264px; width: 264px; padding: 24px 14px 16px 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; scrollbar-width: thin; transition: flex-basis .35s ease, width .35s ease, padding .35s ease, transform .35s ease; }
-.workspace:not(.sidebar-visible) .workspace-sidebar { flex-basis: 0; width: 0; padding-left: 0; padding-right: 0; overflow: hidden; }
+.workspace-sidebar { flex: 0 0 264px; width: 264px; padding: 24px 14px 16px 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; scrollbar-width: thin; background: var(--w-surface); background-image: none; border-right: 1px solid var(--w-line); transition: flex-basis .35s ease, width .35s ease, padding .35s ease, transform .35s ease; }
+.workspace:not(.sidebar-visible):not(.auto-hide) .workspace-sidebar { flex-basis: 0; width: 0; padding-left: 0; padding-right: 0; overflow: hidden; }
+.workspace-sidebar-edge { display: none; }
 .workspace-brand { display: flex; align-items: center; gap: 9px; padding-left: 4px; font-size: 15px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
 .workspace-brand img { width: 25px; height: 25px; }
+.workspace-sidebar-pin { display: inline-grid; place-items: center; width: 30px; height: 30px; margin-left: auto; border: 0; border-radius: 8px; background: transparent; color: var(--w-muted); }
+.workspace-sidebar-pin:hover { background: var(--w-hover); color: var(--w-ink); }
 .dark-theme .workspace-brand img { filter: invert(1); }
 .workspace-calendar-link { width: 100%; display: flex; align-items: center; gap: 12px; border: 0; border-radius: 10px; padding: 9px 8px; text-align: left; background: transparent; color: var(--w-muted); font-size: 13px; }
 .workspace-calendar-link:hover, .workspace-calendar-link.selected { background: var(--w-hover); color: var(--w-ink); }
@@ -146,8 +149,13 @@
 #app-container.dark-theme #toDoModal .modal-content input, #app-container.dark-theme #toDoModal .modal-content textarea { background: var(--w-surface); }
 @media (hover: none) { .board-task-more { opacity: 1; } .workspace .weekly-to-do-header .header-menu-icons { visibility: visible; opacity: 1; } }
 @media (max-width: 1180px) { .workspace-heading h1 { font-size: 28px; } }
+@media (min-width: 901px) {
+  .workspace.auto-hide .workspace-sidebar { position: fixed; z-index: 1050; left: 0; top: 0; bottom: 0; width: 264px; flex-basis: auto; box-shadow: 0 20px 55px rgba(0,0,0,.18); transform: translateX(-105%); visibility: hidden; }
+  .workspace.auto-hide.sidebar-visible .workspace-sidebar { transform: translateX(0); visibility: visible; }
+  .workspace.auto-hide .workspace-sidebar-edge { display: block; position: fixed; z-index: 1049; inset: 0 auto 0 0; width: 12px; }
+}
 @media (max-width: 900px) {
-  .workspace-sidebar { position: fixed; z-index: 1050; left: 0; top: 0; bottom: 0; width: min(300px, 86vw) !important; padding: 24px 14px 16px 20px !important; background: var(--w-bg); box-shadow: 0 20px 55px rgba(0,0,0,.25); transform: translateX(-105%); }
+  .workspace-sidebar { position: fixed; z-index: 1050; left: 0; top: 0; bottom: 0; width: min(300px, 86vw) !important; padding: 24px 14px 16px 20px !important; background: var(--w-surface); box-shadow: 0 20px 55px rgba(0,0,0,.25); transform: translateX(-105%); }
   .workspace.sidebar-visible .workspace-sidebar { transform: translateX(0); }
   .workspace-sidebar-scrim { display: block; position: fixed; z-index: 1049; inset: 0; background: rgba(10,12,16,.24); }
   .workspace-header { flex-wrap: wrap; padding: 15px 14px 8px; }

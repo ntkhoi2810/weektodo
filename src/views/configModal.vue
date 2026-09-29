@@ -159,6 +159,13 @@
                     @change="changeConfig('darkTheme', configData.darkTheme)" />
                 </div>
 
+                <div class="form-check form-switch d-flex px-1 mb-3 justify-content-between">
+                  <label class="form-check-label" for="autoHideSidebarSetting">{{ $t("settings.autoHideSidebar") }}</label>
+                  <input class="form-check-input" type="checkbox" id="autoHideSidebarSetting"
+                    v-model="configData.autoHideSidebar"
+                    @change="changeConfig('autoHideSidebar', configData.autoHideSidebar)" />
+                </div>
+
                 <div v-if="isElectron()" class="form-check form-switch d-flex px-1 mb-3 justify-content-between">
                   <label class="form-check-label" for="darkTrayIcon">{{
                     $t("settings.darkIcon")
