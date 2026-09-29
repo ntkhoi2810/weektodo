@@ -1,86 +1,50 @@
-name: Build/release Electron app
+name: Build Windows installer
 
 on:
   push:
     branches:
       - deploy
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
-  release:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+  windows-installer:
+    runs-on: windows-latest
 
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v3
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-      - name: Install Node.js
-        uses: actions/setup-node@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 16
 
-      - name: Install Dependencies
-        run: |
-          npm install --global yarn
-          yarn --version
-          yarn install
+      - name: Install Yarn
+        run: npm install --global yarn@1
 
-      - name: Install Linux Dependencies 
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo dpkg --add-architecture i386
-          sudo apt-get update
-          sudo apt-get install wine wine32
-          sudo apt-get install snapd
-          sudo apt-get install libarchive-tools
-          sudo snap install snapcraft --classic
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
 
-      - name: build-linux
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          yarn run electron:build
+      - name: Build NSIS installer
+        run: yarn electron:build --win nsis --publish never
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           VUE_APP_SENTRY_DNS: ${{ secrets.VUE_APP_SENTRY_DNS }}
 
-      - name: build-linux
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          yarn run electron:build --win nsis
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          VUE_APP_SENTRY_DNS: ${{ secrets.VUE_APP_SENTRY_DNS }}
-
-      - name: build-linux-snap
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          yarn electron:build --linux snap -p always
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          VUE_APP_SENTRY_DNS: ${{ secrets.VUE_APP_SENTRY_DNS }}
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
-
-      - name: build-mac
-        if: matrix.os == 'macos-latest'
-        run: yarn run electron:build
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          VUE_APP_SENTRY_DNS: ${{ secrets.VUE_APP_SENTRY_DNS }}
-
-      - name: release
-        uses: softprops/action-gh-release@v1
+      - name: Upload installer to workflow run
+        uses: actions/upload-artifact@v4
         with:
+          name: WeekToDo-Windows-installer
+          path: dist_electron/*.exe
+          if-no-files-found: error
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows-build-${{ github.run_number }}
+          name: Windows build ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
           draft: true
-          repository: manuelernestog/weektodo
-          files: |
-            dist_electron//*.exe
-            dist_electron//*.dmg
-            dist_electron//*.AppImage
-            dist_electron//*.snap
-            dist_electron//*.pacman
-            dist_electron//*.deb
-            dist_electron//*.rpm
-            dist_electron//*.pkg
+          files: dist_electron/*.exe
