@@ -16,6 +16,10 @@ const compiled = babel.transformSync(script, {
 const loaded = new Module(filename, module);
 loaded.filename = filename;
 loaded.paths = Module._nodeModulePaths(path.dirname(filename));
+const originalRequire = loaded.require.bind(loaded);
+loaded.require = name => name === "../../helpers/markdownTargetBlankLinks"
+  ? { renderBlankLinks() {} }
+  : originalRequire(name);
 loaded._compile(compiled, filename);
 const component = loaded.exports.default;
 
