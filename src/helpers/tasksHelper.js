@@ -10,12 +10,13 @@ export default {
         if (b.checked) return -1;
         if (a.checked) return 1;
       }
-      if (b.time != a.time) {
-        if (b.time == null) return -1;
-        if (a.time == null) return 1;
+      const aDeadline = a.deadlineDate ? `${a.deadlineDate} ${a.deadlineTime || "23:59"}` : null;
+      const bDeadline = b.deadlineDate ? `${b.deadlineDate} ${b.deadlineTime || "23:59"}` : null;
+      if (aDeadline !== bDeadline) {
+        if (!aDeadline) return 1;
+        if (!bDeadline) return -1;
+        return aDeadline.localeCompare(bDeadline);
       }
-      if (b.time < a.time) return 1;
-      if (b.time > a.time) return -1;
     });
     return array;
   },

@@ -1,6 +1,8 @@
 <template>
   <aside class="workspace-sidebar" :class="{ open }" aria-label="WeekToDo sidebar">
     <div class="workspace-brand"><img src="/icon-mono.svg" alt="" /> <span>weektodo</span></div>
+    <button v-if="showCalendar" type="button" class="workspace-calendar-link" :class="{ selected: activeSection === 'schedule' }"
+      @click="$emit('change-date', selectedDate)"><i class="bi-calendar-week"></i> {{ $t('settings.calendar') }}</button>
     <div v-if="showCalendar" class="mini-calendar">
       <div class="mini-calendar-heading">
         <strong>{{ monthLabel }}</strong>
@@ -16,10 +18,10 @@
           :aria-label="day.label" :aria-pressed="day.selected" @click="$emit('change-date', day.key)">{{ day.number }}</button>
       </div>
     </div>
-    <nav v-if="showCustomList" class="workspace-lists" :aria-label="$t('settings.customLists')">
-      <div class="workspace-section-title">{{ $t('settings.customLists') }}</div>
+    <nav v-if="showCustomList" class="workspace-lists" :aria-label="$t('todoDetails.todoLists')">
+      <div class="workspace-section-title">{{ $t('todoDetails.todoLists') }}</div>
       <button v-for="list in lists" :key="list.listId" type="button" class="workspace-list-link"
-        :class="{ selected: selectedListId === list.listId }" :aria-pressed="selectedListId === list.listId"
+        :class="{ selected: activeSection === 'list' && selectedListId === list.listId }" :aria-pressed="activeSection === 'list' && selectedListId === list.listId"
         @click="$emit('select-list', list.listId)">
         <span class="workspace-list-dot"></span><span class="workspace-list-name">{{ list.listName || $t('generatedData.list1') }}</span>
         <span class="workspace-list-count">{{ pending(list.listId) }}</span>
@@ -50,6 +52,7 @@ export default {
     open: Boolean,
     selectedDate: String,
     selectedListId: String,
+    activeSection: String,
     showCalendar: Boolean,
     showCustomList: Boolean,
   },

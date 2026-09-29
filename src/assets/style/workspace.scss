@@ -9,7 +9,10 @@
   --w-line: #e4e6ea;
   --w-hover: rgba(20, 22, 26, .05);
   --w-shadow: 0 1px 2px rgba(20, 22, 26, .04), 0 10px 28px -14px rgba(20, 22, 26, .16);
+  --w-dot: rgba(60, 67, 80, .14);
   background: var(--w-bg);
+  background-image: radial-gradient(circle, var(--w-dot) .8px, transparent 1px);
+  background-size: 19px 19px;
   color: var(--w-ink);
   font: 400 14px/1.45 "Be Vietnam Pro", system-ui, sans-serif;
 }
@@ -22,15 +25,18 @@
   --w-line: #262930;
   --w-hover: rgba(237, 238, 240, .07);
   --w-shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px -14px rgba(0,0,0,.6);
+  --w-dot: rgba(220, 224, 232, .11);
 }
 #app-container .app-body { height: 100%; }
 #app-container button:focus-visible, #app-container input:focus-visible { outline: 2px solid var(--w-ink); outline-offset: 2px; }
 .workspace { display: flex; height: 100%; min-width: 0; overflow: hidden; }
-.workspace-sidebar { flex: 0 0 264px; width: 264px; padding: 24px 14px 16px 20px; display: flex; flex-direction: column; gap: 30px; overflow-y: auto; scrollbar-width: thin; transition: flex-basis .35s ease, width .35s ease, padding .35s ease, transform .35s ease; }
+.workspace-sidebar { flex: 0 0 264px; width: 264px; padding: 24px 14px 16px 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; scrollbar-width: thin; transition: flex-basis .35s ease, width .35s ease, padding .35s ease, transform .35s ease; }
 .workspace:not(.sidebar-visible) .workspace-sidebar { flex-basis: 0; width: 0; padding-left: 0; padding-right: 0; overflow: hidden; }
 .workspace-brand { display: flex; align-items: center; gap: 9px; padding-left: 4px; font-size: 15px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
 .workspace-brand img { width: 25px; height: 25px; }
 .dark-theme .workspace-brand img { filter: invert(1); }
+.workspace-calendar-link { width: 100%; display: flex; align-items: center; gap: 12px; border: 0; border-radius: 10px; padding: 9px 8px; text-align: left; background: transparent; color: var(--w-muted); font-size: 13px; }
+.workspace-calendar-link:hover, .workspace-calendar-link.selected { background: var(--w-hover); color: var(--w-ink); }
 .mini-calendar-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 5px 8px; }
 .mini-calendar-heading strong { font-weight: 600; font-size: 13px; text-transform: capitalize; }
 .mini-calendar-heading button, .workspace-icon-button { width: 32px; height: 32px; border: 0; border-radius: 10px; background: transparent; color: var(--w-muted); display: inline-grid; place-items: center; }
@@ -66,6 +72,17 @@
 .workspace-segment button { border: 0; background: transparent; border-radius: 9px; height: 27px; min-width: 53px; padding: 0 11px; color: var(--w-soft); font-size: 12px; }
 .workspace-segment button.active { background: var(--w-surface); color: var(--w-ink); box-shadow: 0 1px 3px rgba(0,0,0,.11); }
 .workspace-board { flex: 1; min-height: 0; min-width: 0; display: flex; padding: 6px 16px 16px; gap: 12px; }
+.custom-list-view { flex: 1; min-width: 0; max-width: 880px; display: flex; flex-direction: column; margin: 0 auto; padding: 22px 26px 18px; border: 1px solid var(--w-line); border-radius: 22px; background: var(--w-surface); box-shadow: var(--w-shadow); }
+.custom-list-view > .weekly-to-do-header { min-height: 44px !important; border-bottom: 1px solid var(--w-line); }
+.custom-list-content { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.deadline-group { padding: 12px 0 16px; border-bottom: 1px solid var(--w-line); }
+.deadline-group h2, .completed-toggle { margin: 0 0 5px; padding: 0 4px; color: var(--w-muted); font-size: 12px; font-weight: 600; }
+.deadline-group h2 span, .completed-toggle span { margin-left: 5px; color: var(--w-soft); font-weight: 400; }
+.completed-toggle { display: flex; align-items: center; gap: 6px; width: 100%; border: 0; background: transparent; text-align: left; }
+.completed-toggle:hover { color: var(--w-ink); }
+.custom-list-new-task { flex: none; margin-top: 14px; padding: 11px 14px !important; border: 1px solid var(--w-line) !important; border-radius: 12px !important; background: var(--w-hover) !important; }
+.custom-list-new-task:focus { border-color: var(--w-soft) !important; background: var(--w-surface) !important; }
+.workspace-list-loading { color: var(--w-soft); padding: 20px; }
 .workspace-days { flex: 1; min-width: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: thin; }
 .workspace .workspace-days > .to-do-list-container { flex: 0 0 calc(100% / var(--visible-days)); min-width: 150px; scroll-snap-align: start; }
 .workspace .to-do-list-container { height: 100%; min-height: 0; min-width: 0; padding: 16px 14px 8px; margin: 0; border-radius: 22px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--w-line) transparent; }
@@ -116,7 +133,7 @@
 .dark-theme .workspace-empty img { filter: invert(1); }
 .workspace-sidebar-scrim { display: none; }
 #toDoModal .modal-dialog { position: absolute; top: 10px; bottom: 10px; right: 10px; width: min(440px, calc(100% - 20px)); max-width: none; margin: 0; transform: none; }
-#toDoModal .modal-content { height: 100%; border: 1px solid var(--w-line); border-radius: 24px; background: var(--w-surface); color: var(--w-ink); box-shadow: 0 28px 64px -18px rgba(0,0,0,.35); overflow: hidden; }
+#toDoModal .modal-content { height: 100%; border: 1px solid var(--w-line); border-radius: 24px; background: var(--w-surface); color: var(--w-ink); box-shadow: 0 28px 64px -18px rgba(0,0,0,.35); overflow: visible; }
 #toDoModal.fullscreen .modal-dialog { inset: 0; width: 100%; height: 100%; }
 #toDoModal.fullscreen .modal-content { border-radius: 0; }
 #toDoModal .modal-body { overflow-y: auto; }
@@ -136,6 +153,7 @@
   .workspace-header { flex-wrap: wrap; padding: 15px 14px 8px; }
   .workspace-controls { width: 100%; justify-content: space-between; }
   .workspace-board { padding: 4px 10px 12px; }
+  .custom-list-view { width: 100%; padding: 16px; }
   .workspace .workspace-days > .to-do-list-container { flex: 0 0 80vw; min-width: 260px; }
   .workspace.day-view .workspace-days > .to-do-list-container { flex-basis: 100%; min-width: 100%; }
   .workspace-list-panel { flex-basis: 80vw; max-width: 360px; }

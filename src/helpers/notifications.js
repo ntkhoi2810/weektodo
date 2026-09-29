@@ -1,38 +1,48 @@
 import moment from "moment";
+import dbRepository from "../repositories/dbRepository";
+import { normalizeDeadline, deadlineMoment } from "./deadline";
+
+let refreshGeneration = 0;
 
 export default {
-  refreshDayNotifications(vue, todoListId) {
-    let todoList = vue.$store.getters.todoLists[todoListId];
-    var notificationSound = vue.$store.getters.config.notificationSound;
-    if (todoListId != moment().format("YYYYMMDD")) return;
-
-    vue.$store.getters.notifications.forEach((notification) => {
-      clearTimeout(notification);
-    });
-    var notificationsList = [];
-
-    if (todoList != null)
-      todoList.forEach((todo) => {
-        if (todo.alarm && !todo.checked && moment(todo.time, "HH:mm") >= moment()) {
-          notificationsList.push(this.createNotificationAlert(todo.time, todo.text, notificationSound));
+  refreshDayNotifications(vue) {
+    const generation = ++refreshGeneration;
+    vue.$store.getters.notifications.forEach(clearTimeout);
+    vue.$store.commit("setNotificatios", []);
+    const dbRequest = dbRepository.open();
+    dbRequest.onsuccess = event => {
+      const db = event.target.result;
+      const lists = {};
+      const request = dbRepository.selectAll(db, "todo_lists");
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          lists[cursor.key] = cursor.value;
+          cursor.continue();
+          return;
         }
-      });
-
-    vue.$store.commit("setNotificatios", notificationsList);
+        db.close();
+        if (generation !== refreshGeneration) return;
+        Object.assign(lists, vue.$store.getters.todoLists);
+        const now = moment();
+        const timers = [];
+        Object.keys(lists).forEach(listId => {
+          (lists[listId] || []).forEach(rawTask => {
+            const task = { ...rawTask };
+            normalizeDeadline(task, listId);
+            const deadline = deadlineMoment(task);
+            if (!task.alarm || task.checked || !deadline || !deadline.isSame(now, "day") || !deadline.isAfter(now)) return;
+            timers.push(this.createNotificationAlert(deadline, task.text, vue.$store.getters.config.notificationSound));
+          });
+        });
+        vue.$store.commit("setNotificatios", timers);
+      };
+    };
   },
-  createNotificationAlert(todoTime, todoText, notificationSound) {
-    var x = new moment();
-    var y = new moment(todoTime, "HH:mm");
-    var duration = moment.duration(y.diff(x)).asMilliseconds();
-
-    var alertTimeOut = setTimeout(
-      function () {
-        this.createNotification(moment(todoTime, "HH:mm").format("LT"), todoText, notificationSound);
-      }.bind(this),
-      duration
-    );
-
-    return alertTimeOut;
+  createNotificationAlert(deadline, todoText, notificationSound) {
+    return setTimeout(() => {
+      this.createNotification(deadline.format("LT"), todoText, notificationSound);
+    }, deadline.diff(moment()));
   },
   createNotification(header, body, notificationSound) {
     new Notification(header, {

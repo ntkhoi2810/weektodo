@@ -8,6 +8,7 @@
 import { Modal } from 'bootstrap'
 import customToDoListIdsRepository from "../../repositories/customToDoListIdsRepository";
 import toDoListRepository from "../../repositories/toDoListRepository";
+import notifications from "../../helpers/notifications";
 import comfirmModal from "../../components/comfirmModal.vue";
 
 export default {
@@ -29,7 +30,7 @@ export default {
       var modalEl = document.getElementById('customListRemoveModal');
       var modal = Modal.getInstance(modalEl);
       customToDoListIdsRepository.update(this.$store.getters.cTodoListIds);
-      toDoListRepository.remove(this.$store.getters.actions.cListToRmv.id);
+      toDoListRepository.remove(this.$store.getters.actions.cListToRmv.id).then(() => notifications.refreshDayNotifications(this));
       modal.hide();
     }
   }

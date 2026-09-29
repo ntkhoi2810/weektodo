@@ -178,7 +178,7 @@ export default {
     todoListToString: function () {
       return this.toDoList.map((x) => {
         let task = `- ${x.text}`;
-        if (x.time) task += ` [${x.time}]`;
+        if (x.deadlineDate) task += ` [${x.deadlineDate}${x.deadlineTime ? ` ${x.deadlineTime}` : ""}]`;
         return task;
       }).join('\n')
     },

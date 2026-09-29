@@ -48,9 +48,12 @@
             </div>
           </div>
           <div class="d-flex ms-auto align-items-center">
-            <time-picker :time="todo.time" @time-selected="changeTime"></time-picker>
-            <i :class="{ 'bi-bell': !todo.alarm, 'bi-bell-fill': todo.alarm }" class="header-menu-icons"
-              @click="changeAlarm" :title="$t('todoDetails.alarm')"></i>
+            <time-picker :deadline-date="todo.deadlineDate" :deadline-time="todo.deadlineTime"
+              @deadline-selected="changeDeadline"></time-picker>
+            <button type="button" class="header-menu-icons deadline-alarm" :disabled="!todo.deadlineDate || !todo.deadlineTime"
+              :aria-pressed="!!todo.alarm" @click="changeAlarm" :title="$t('todoDetails.alarm')">
+              <i :class="todo.alarm ? 'bi-bell-fill' : 'bi-bell'"></i>
+            </button>
             <repeating-event v-if="showingCalendar" :repeatingEvent="todo.repeatingEvent" :todo="todo"
               @repeatingEventSelected="changeRepeatingEvent"></repeating-event>
             <color-picker :color="todo.color" @color-selected="changeColor"></color-picker>
@@ -114,7 +117,7 @@
               </label>
               <input v-show="editingTitle" class="todo-title-input" type="text" v-model="todo.text" ref="titleInput"
                 :placeholder="$t('todoDetails.taskTitle')" @blur="doneEditTitle()" @keyup.enter="doneEditTitle()" />
-              <description-text-area :todoDesc="todo.desc"
+              <description-text-area :key="todo.listId + '-' + index" :todoDesc="todo.desc"
                 @updated-description="changeDescription"></description-text-area>
             </div>
           </div>
@@ -179,6 +182,7 @@ import linkifyStr from 'linkify-string';
 import ClickHandler from "@manuelernestog/click-handler";
 import tasksHelper from "../../helpers/tasksHelper";
 import descriptionTextArea from './descriptionTextArea.vue'
+import { normalizeDeadline } from "../../helpers/deadline";
 
 export default {
   name: "toDoModal",
@@ -194,6 +198,8 @@ export default {
         desc: "",
         subTaskList: [],
         alarm: false,
+        deadlineDate: null,
+        deadlineTime: null,
       },
       todoList: null,
       index: 0,
@@ -430,6 +436,8 @@ export default {
         priority: 0,
         tags: [],
         time: this.todo.time,
+        deadlineDate: this.todo.deadlineDate,
+        deadlineTime: this.todo.deadlineTime,
         alarm: this.todo.alarm,
         repeatingEvent: null,
       };
@@ -470,22 +478,23 @@ export default {
       this.todo.color = color;
       this.updateTodo();
     },
-    changeTime(time) {
-      this.todo.time = time;
-      if (!time) {
+    changeDeadline({ date, time }) {
+      this.todo.deadlineDate = date;
+      this.todo.deadlineTime = time;
+      if (!date || !time) {
         this.todo.alarm = false;
       }
-      this.updateTodoWithReorder();
+      this.updateTodoWithReorder(false);
     },
     changeAlarm() {
-      if (this.todo.time) {
+      if (this.todo.deadlineDate && this.todo.deadlineTime) {
         this.todo.alarm = this.todo.alarm ? false : true;
-        this.updateTodo();
+        this.updateTodo(false);
       }
     },
     changeDescription(desc) {
       this.todo.desc = desc;
-      this.updateTodo();
+      this.updateTodo(false);
     },
     changeRepeatingEvent(repeatingEvent) {
       this.todo.repeatingEvent = repeatingEvent;
@@ -514,6 +523,7 @@ export default {
       this.todoList = this.$store.getters.todoLists[newVal.toDo.listId];
       this.index = newVal.index;
       this.todo = this.todoList[this.index];
+      normalizeDeadline(this.todo, this.todo.listId);
       if (this.todo["desc"] == undefined) {
         this.todo["desc"] = "";
         this.todo["subTaskList"] = [];
@@ -835,6 +845,9 @@ export default {
   margin-left: 6px;
   @include btn-icon;
 }
+
+.deadline-alarm { border: 0; background: transparent; color: inherit; }
+.deadline-alarm:disabled { opacity: .4; cursor: not-allowed; }
 
 .header-menu-icons.bi-x {
   font-size: 1.9rem;

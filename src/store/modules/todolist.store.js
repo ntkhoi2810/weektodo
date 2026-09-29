@@ -1,4 +1,5 @@
 import dbRepository from "../../repositories/dbRepository";
+import { normalizeDeadline } from "../../helpers/deadline";
 
 const state = {
   todoLists: {},
@@ -88,7 +89,9 @@ const actions = {
         get_req.onsuccess = function (event) {
           let todoList = event.target.result;
           if (todoList) {
+            const changed = todoList.reduce((updated, task) => normalizeDeadline(task, todoListId) || updated, false);
             commit("loadTodoLists", { todoListId: todoListId, todoList: todoList });
+            if (changed) dbRepository.update(db, "todo_lists", todoListId, todoList);
           } else {
             commit("loadTodoLists", { todoListId: todoListId, todoList: [] });
             dbRepository.add(db, "todo_lists", todoListId, []);

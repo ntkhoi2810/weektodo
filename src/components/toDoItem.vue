@@ -8,8 +8,9 @@
     </button>
     <div class="board-task-content" role="button" tabindex="0" @click="openDetails" @keydown.enter="openDetails" @keydown.space.prevent="openDetails">
       <span class="board-task-title" v-html="todoText"></span>
-      <span v-if="toDo.time || (toDo.subTaskList && toDo.subTaskList.length) || toDo.alarm" class="board-task-meta">
-        <span v-if="toDo.time"><i class="bi-clock"></i> {{ timeFormat(toDo.time) }}</span>
+      <span v-if="toDo.deadlineDate || toDo.deadlineTime || (toDo.subTaskList && toDo.subTaskList.length) || toDo.alarm" class="board-task-meta">
+        <span v-if="toDo.deadlineDate"><i class="bi-calendar-event"></i> {{ dateFormat(toDo.deadlineDate) }}</span>
+        <span v-if="toDo.deadlineTime"><i class="bi-clock"></i> {{ toDo.deadlineTime }}</span>
         <span v-if="toDo.subTaskList && toDo.subTaskList.length"><i class="bi-list-check"></i> {{ completedSubtasks }}/{{ toDo.subTaskList.length }}</span>
         <span v-if="toDo.alarm && notificationIndicator"><i class="bi-bell"></i></span>
       </span>
@@ -39,7 +40,7 @@ export default {
     todoText() { return linkifyStr(this.toDo.text, { target: "_blank", defaultProtocol: "https" }); },
   },
   methods: {
-    timeFormat(time) { return moment(time, "HH:mm").format("HH:mm"); },
+    dateFormat(date) { return moment(date, "YYYY-MM-DD").locale(this.$store.getters.config.language).format("D MMM"); },
     persist() {
       let list = this.$store.getters.todoLists[this.toDoListId];
       if (this.$store.getters.config.autoReorderTasks) list = tasksHelper.reorderTasksList(list);

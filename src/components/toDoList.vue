@@ -92,6 +92,8 @@ export default {
           priority: 0,
           tags: [],
           time: null,
+          deadlineDate: null,
+          deadlineTime: null,
           alarm: false,
           repeatingEvent: null,
         };

@@ -101,7 +101,7 @@
     "list3": "Ideas",
     "subtask1": "I'm a subtask",
     "subtask2": "Click to complete subtask",
-    "desc1": "Here you can set your notes about this task. Double click to edit the notes."
+    "desc1": "Here you can set notes about this task. Click once to edit and press Ctrl+Enter to save."
   },
   "tips": {
     "tips": "Tips",
@@ -199,6 +199,22 @@
   "todoDetails": {
     "taskTitle": "Task title",
     "notes": "Notes",
+    "addNotes": "Add notes",
+    "editNotes": "Edit notes",
+    "saveNotesHint": "Ctrl+Enter to save",
+    "deadline": "Deadline",
+    "deadlineDate": "Date",
+    "deadlineTime": "Time",
+    "clearDate": "Clear date",
+    "clearTime": "Clear time",
+    "chooseHour": "Choose hour",
+    "chooseMinute": "Choose minute",
+    "exactTimeHint": "Type in the time field for exact minutes",
+    "noDeadline": "No deadline",
+    "completed": "Completed",
+    "independentList": "To-do-list · separate from the weekly schedule",
+    "todoLists": "To-do-lists",
+    "loading": "Loading tasks…",
     "markdown": "Markdown Style Supported",
     "addSubTask": "Add Subtask",
     "copiedTaskToClipboard": "Text Copied to Clipboard !!!",

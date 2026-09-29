@@ -114,8 +114,7 @@ export default {
   created() {
     const config = this.$store.getters.config;
     const dayCount = config.calendar ? 7 : 0;
-    const panelCount = config.customList && this.$store.getters.cTodoListIds.length && (window.innerWidth >= 1480 || !config.calendar) ? 1 : 0;
-    this.initialListToLoad = dayCount + panelCount;
+    this.initialListToLoad = dayCount;
     if (!this.initialListToLoad) {
       this.initialListToLoad = 1;
       this.$store.dispatch("loadTodoLists", moment().format("YYYYMMDD")).then(this.todoListMounted);
@@ -161,7 +160,10 @@ export default {
       if (this.$refs.workspace) this.$refs.workspace.resetScroll();
     },
     resetCustomList: function () {
-      if (this.$refs.workspace) this.$refs.workspace.selectedListId = this.$store.getters.cTodoListIds[0]?.listId || null;
+      if (this.$refs.workspace) {
+        this.$refs.workspace.selectedListId = this.$store.getters.cTodoListIds[0]?.listId || null;
+        if (!this.$refs.workspace.selectedListId && this.$store.getters.config.calendar) this.$refs.workspace.section = "schedule";
+      }
     },
     setSelectedDate: function (date) {
       this.selected_date = date;

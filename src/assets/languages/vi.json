@@ -101,7 +101,7 @@
     "list3": "Ideas",
     "subtask1": "I'm a subtask",
     "subtask2": "Click to complete subtask",
-    "desc1": "Here you can set your notes about this task. Double click to edit the notes."
+    "desc1": "Bạn có thể ghi chú cho công việc tại đây. Nhấp một lần để sửa và nhấn Ctrl+Enter để lưu."
   },
   "tips": {
     "tips": "Mẹo",
@@ -199,6 +199,22 @@
   "todoDetails": {
     "taskTitle": "Tiêu đề Công việc",
     "notes": "Ghi chú",
+    "addNotes": "Thêm ghi chú",
+    "editNotes": "Sửa ghi chú",
+    "saveNotesHint": "Ctrl+Enter để lưu",
+    "deadline": "Hạn chót",
+    "deadlineDate": "Ngày",
+    "deadlineTime": "Giờ",
+    "clearDate": "Xóa ngày",
+    "clearTime": "Xóa giờ",
+    "chooseHour": "Chọn giờ",
+    "chooseMinute": "Chọn phút",
+    "exactTimeHint": "Nhập trực tiếp để chọn phút chính xác",
+    "noDeadline": "Không có hạn chót",
+    "completed": "Đã hoàn thành",
+    "independentList": "To-do-list · tách khỏi lịch tuần",
+    "todoLists": "To-do-list",
+    "loading": "Đang tải công việc…",
     "markdown": "Hỗ trợ Định dạng Markdown",
     "addSubTask": "Thêm Công việc Con",
     "copiedTaskToClipboard": "Văn bản đã được sao chép vào Clipboard !!!",
