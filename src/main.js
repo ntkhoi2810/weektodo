@@ -20,6 +20,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import "./assets/style/globalVars.scss";
 import "./assets/style/main.scss";
 import "./assets/style/uiComponents.scss";
+import "./assets/style/workspace.scss";
 
 Sentry.init({
   dsn: process.env.VUE_APP_SENTRY_DNS,

@@ -4,12 +4,14 @@
       style="visibility: hidden"></i>
     <div style="flex-grow: 1" class="noselect">
       <div v-if="!customTodoList">
-        <h4 :class="{ 'today-date': is_today }">
-          {{ moments(id).locale(language).format("dddd") }}
-        </h4>
+        <button type="button" class="workspace-day-title" @click="$emit('focus-day')">
+          <span class="workspace-day-name">{{ moments(id).locale(language).format("dddd") }}</span>
+          <strong :class="{ 'today-date': is_today }">{{ moments(id).format("D") }}</strong>
+        </button>
         <span class="weekly-to-do-subheader">
-          {{ moments(id).locale(language).format("LL") }}
+          {{ moments(id).locale(language).format("MMM YYYY") }}
         </span>
+        <div class="workspace-day-progress"><span :style="{ width: progress + '%' }"></span></div>
       </div>
       <div v-else>
         <h4 v-show="!editing" @dblclick="editToDoListName"> {{ todo_list_name }} </h4>
@@ -74,6 +76,7 @@ import { Toast } from 'bootstrap';
 
 export default {
   components: {},
+  emits: ["focus-day"],
   props: {
     id: { required: false, type: String },
     customTodoList: { required: false, default: false, type: Boolean },
@@ -189,11 +192,16 @@ export default {
     }
   },
   computed: {
+    progress: function () {
+      if (!this.toDoList || !this.toDoList.length) return 0;
+      return Math.round(this.toDoList.filter(task => task.checked).length / this.toDoList.length * 100);
+    },
     is_today: function () {
       return moment().format("YYYYMMDD") == this.id;
     },
     todo_list_name: function () {
-      return this.$store.getters.cTodoListIds[this.cTodoListIndex].listName;
+      const list = this.$store.getters.cTodoListIds[this.cTodoListIndex];
+      return list ? list.listName : "";
     },
     language: function () {
       return this.$store.getters.config.language;

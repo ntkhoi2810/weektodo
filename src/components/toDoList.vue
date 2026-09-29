@@ -1,14 +1,14 @@
 <template>
   <div :id="'list' + id" class="to-do-list-container d-flex flex-column" ref="listContainer" :class="{
     'old-date': !customTodoList && moments(id).isBefore(Date(), 'day'),
-  }" :style="`flex: 0 0 ${100 / columns}%;`">
+  }">
     <div v-if="loading" class="loading-spinner">
       <div class="spinner-border" role="status">
         <span class="visually-hidden">Loading...</span>
       </div>
     </div>
 
-    <list-header :id="id" :customTodoList="customTodoList" :cTodoListIndex="cTodoListIndex" :toDoList="toDoListState">
+    <list-header :id="id" :customTodoList="customTodoList" :cTodoListIndex="cTodoListIndex" :toDoList="toDoListState" @focus-day="$emit('focus-day', id)">
     </list-header>
     <ul class="to-do-list">
       <li v-for="(toDo, index) in toDoListState" :key="index">
@@ -21,7 +21,7 @@
       @dragenter.self="onDragenter" @dragleave.self="onDragleave" @dragover.prevent
       :class="{ 'fake-drag-hover': fakeItemsDragHover }">
       <div class="todo-item-container">
-        <input class="todo-input new-todo-input" type="text" ref="newToDoInput" v-model="newToDo.text" @blur="addToDo()"
+        <input class="todo-input new-todo-input" type="text" ref="newToDoInput" v-model="newToDo.text" :placeholder="$t('ui.newTask')" @blur="addToDo()"
           @keyup.enter="addToDo()" @keyup.esc="cancelAdd()" />
       </div>
       <div class="fake-lines" :class="{ 'custom-list': customTodoList }" @click="$refs.newToDoInput.focus()"></div>
@@ -43,6 +43,7 @@ export default {
     listHeader,
     toDoItem,
   },
+  emits: ["todoListMounted", "focus-day"],
   props: {
     id: { required: false, type: String },
     customTodoList: { required: false, default: false, type: Boolean },
@@ -173,7 +174,7 @@ export default {
   },
   computed: {
     toDoListState: function () {
-      return this.$store.getters.todoLists[this.id];
+      return this.$store.getters.todoLists[this.id] || [];
     },
     columns: function () {
       if (this.customTodoList)

@@ -57,6 +57,16 @@
             <i id="btnTaskOptionMenu" class="bi-three-dots-vertical header-menu-icons" type="button"
               data-bs-toggle="dropdown" :title="$t('todoDetails.actions')"></i>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="btnTaskOptionMenu">
+              <li v-if="!$store.getters.config.autoReorderTasks">
+                <button class="dropdown-item" type="button" :disabled="index <= 0" @click="moveTodo(-1)">
+                  <i class="bi-arrow-up"></i><span>{{ $t("ui.moveUp") }}</span>
+                </button>
+              </li>
+              <li v-if="!$store.getters.config.autoReorderTasks">
+                <button class="dropdown-item" type="button" :disabled="!todoList || index >= todoList.length - 1" @click="moveTodo(1)">
+                  <i class="bi-arrow-down"></i><span>{{ $t("ui.moveDown") }}</span>
+                </button>
+              </li>
               <li>
                 <button class="dropdown-item" type="button" @click="copyTodo">
                   <i class="bi-clipboard"></i>
@@ -210,6 +220,15 @@ export default {
     descriptionTextArea
   },
   methods: {
+    moveTodo: function (offset) {
+      if (!this.todoList) return;
+      const next = this.index + offset;
+      if (next < 0 || next >= this.todoList.length) return;
+      this.todoList.splice(this.index, 1);
+      this.todoList.splice(next, 0, this.todo);
+      this.index = next;
+      this.updateTodoList(this.todo.listId, this.todoList);
+    },
     removeSubTask: function (index) {
       this.todo.subTaskList.splice(index, 1);
       this.updateTodo();

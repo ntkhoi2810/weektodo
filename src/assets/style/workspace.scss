@@ -1,0 +1,165 @@
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600&display=swap");
+
+#app-container {
+  --w-bg: #f3f4f6;
+  --w-surface: #fff;
+  --w-ink: #14161a;
+  --w-muted: #565b66;
+  --w-soft: #9298a3;
+  --w-line: #e4e6ea;
+  --w-hover: rgba(20, 22, 26, .05);
+  --w-shadow: 0 1px 2px rgba(20, 22, 26, .04), 0 10px 28px -14px rgba(20, 22, 26, .16);
+  background: var(--w-bg);
+  color: var(--w-ink);
+  font: 400 14px/1.45 "Be Vietnam Pro", system-ui, sans-serif;
+}
+#app-container.dark-theme {
+  --w-bg: #0e0f12;
+  --w-surface: #181a1f;
+  --w-ink: #edeef0;
+  --w-muted: #a4a9b3;
+  --w-soft: #777d88;
+  --w-line: #262930;
+  --w-hover: rgba(237, 238, 240, .07);
+  --w-shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px -14px rgba(0,0,0,.6);
+}
+#app-container .app-body { height: 100%; }
+#app-container button:focus-visible, #app-container input:focus-visible { outline: 2px solid var(--w-ink); outline-offset: 2px; }
+.workspace { display: flex; height: 100%; min-width: 0; overflow: hidden; }
+.workspace-sidebar { flex: 0 0 264px; width: 264px; padding: 24px 14px 16px 20px; display: flex; flex-direction: column; gap: 30px; overflow-y: auto; scrollbar-width: thin; transition: flex-basis .35s ease, width .35s ease, padding .35s ease, transform .35s ease; }
+.workspace:not(.sidebar-visible) .workspace-sidebar { flex-basis: 0; width: 0; padding-left: 0; padding-right: 0; overflow: hidden; }
+.workspace-brand { display: flex; align-items: center; gap: 9px; padding-left: 4px; font-size: 15px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
+.workspace-brand img { width: 25px; height: 25px; }
+.dark-theme .workspace-brand img { filter: grayscale(1) brightness(3); }
+.mini-calendar-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 5px 8px; }
+.mini-calendar-heading strong { font-weight: 600; font-size: 13px; text-transform: capitalize; }
+.mini-calendar-heading button, .workspace-icon-button { width: 32px; height: 32px; border: 0; border-radius: 10px; background: transparent; color: var(--w-muted); display: inline-grid; place-items: center; }
+.mini-calendar-heading button:hover, .workspace-icon-button:hover { background: var(--w-hover); color: var(--w-ink); }
+.mini-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 32px; }
+.mini-calendar-grid .mini-dow { text-align: center; font-size: 11px; color: var(--w-soft); padding-top: 6px; }
+.mini-calendar-grid button { border: 0; background: transparent; border-radius: 10px; position: relative; font-size: 12px; color: var(--w-muted); }
+.mini-calendar-grid button:hover { background: var(--w-hover); }
+.mini-calendar-grid button.outside { opacity: .4; }
+.mini-calendar-grid button.selected { box-shadow: inset 0 0 0 1.5px var(--w-ink); }
+.mini-calendar-grid button.today { border-radius: 50%; background: var(--w-ink); color: var(--w-surface); }
+.mini-calendar-grid button.has-tasks:after { content: ""; position: absolute; bottom: 2px; left: calc(50% - 1.5px); width: 3px; height: 3px; border-radius: 50%; background: var(--w-soft); }
+.workspace-section-title { color: var(--w-soft); font-size: 12px; padding: 0 8px 8px; }
+.workspace-list-link, .workspace-list-add, .workspace-sidebar-bottom button, .workspace-sidebar-bottom a { width: 100%; display: flex; align-items: center; gap: 12px; border: 0; background: transparent; text-align: left; border-radius: 10px; padding: 9px 8px; font-size: 13px; color: var(--w-muted); text-decoration: none; }
+.workspace-list-link:hover, .workspace-list-link.selected, .workspace-list-add:hover, .workspace-sidebar-bottom button:hover, .workspace-sidebar-bottom a:hover { background: var(--w-hover); color: var(--w-ink); }
+.workspace-list-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--w-soft); flex: none; }
+.workspace-list-link.selected .workspace-list-dot { background: var(--w-ink); transform: scale(1.5); }
+.workspace-list-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-list-count { margin-left: auto; font-size: 12px; color: var(--w-soft); }
+.workspace-list-add { color: var(--w-soft); margin-top: 5px; }
+.workspace-sidebar-bottom { margin-top: auto; }
+.workspace-sidebar-bottom button i, .workspace-sidebar-bottom a i { width: 16px; }
+.workspace-sidebar-bottom p { display: flex; gap: 9px; align-items: flex-start; font-size: 11px; color: var(--w-soft); line-height: 1.5; margin: 16px 7px 0; }
+.workspace-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.workspace-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 24px 10px 20px; }
+.workspace-heading { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.workspace-heading h1 { font-size: 33px; font-weight: 300; letter-spacing: -.03em; line-height: 1.15; margin: 0; text-transform: capitalize; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-heading p { font-size: 12px; color: var(--w-soft); margin: 3px 0 0; }
+.workspace-controls, .workspace-nav { display: flex; align-items: center; gap: 4px; }
+.workspace-controls { gap: 12px; }
+.workspace-today-button { border: 0; border-radius: 10px; background: var(--w-hover); color: var(--w-ink); height: 32px; padding: 0 14px; font-size: 12px; font-weight: 500; }
+.workspace-segment { display: flex; padding: 3px; background: var(--w-hover); border-radius: 12px; }
+.workspace-segment button { border: 0; background: transparent; border-radius: 9px; height: 27px; min-width: 53px; padding: 0 11px; color: var(--w-soft); font-size: 12px; }
+.workspace-segment button.active { background: var(--w-surface); color: var(--w-ink); box-shadow: 0 1px 3px rgba(0,0,0,.11); }
+.workspace-board { flex: 1; min-height: 0; min-width: 0; display: flex; padding: 6px 16px 16px; gap: 12px; }
+.workspace-days { flex: 1; min-width: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.workspace .workspace-days > .to-do-list-container { flex: 0 0 calc(100% / var(--visible-days)); min-width: 150px; scroll-snap-align: start; }
+.workspace .to-do-list-container { height: 100%; min-height: 0; min-width: 0; padding: 16px 14px 8px; margin: 0; border-radius: 22px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--w-line) transparent; }
+.workspace .to-do-list-container:has(.today-date) { background: var(--w-surface); box-shadow: var(--w-shadow); }
+.workspace.day-view .workspace-days > .to-do-list-container { min-width: 100%; max-width: 760px; }
+.workspace .weekly-to-do-header { margin: 0 0 12px; padding: 0 0 12px; text-align: left; align-items: start; min-height: 95px; }
+.workspace .weekly-to-do-header > i:first-child { display: none; }
+.workspace .weekly-to-do-header > div { min-width: 0; }
+.workspace-day-title { border: 0; background: transparent; padding: 0; display: flex; flex-direction: column; align-items: flex-start; text-align: left; width: 100%; }
+.workspace-day-name { font-size: 12px; color: var(--w-soft); font-weight: 500; text-transform: capitalize; }
+.workspace-day-title strong { font-size: 38px; font-weight: 300; line-height: 1.1; letter-spacing: -.035em; color: var(--w-muted); }
+.workspace-day-title strong.today-date { color: var(--w-ink); text-decoration: none; }
+.workspace .weekly-to-do-subheader { font-size: 11px; color: var(--w-soft); display: block; margin-top: 1px; }
+.workspace-day-progress { height: 2px; background: var(--w-line); margin-top: 9px; border-radius: 2px; overflow: hidden; }
+.workspace-day-progress span { display: block; height: 100%; background: var(--w-ink); transition: width .35s ease; }
+.workspace .weekly-to-do-header h4 { font-size: 22px; font-weight: 300; color: var(--w-ink); text-align: left; margin: 0; }
+.workspace .weekly-to-do-header .header-menu-icons { color: var(--w-soft); font-size: 17px; }
+.workspace .weekly-to-do-header:hover .header-menu-icons, .workspace .weekly-to-do-header:focus-within .header-menu-icons { visibility: visible; opacity: 1; }
+.workspace .to-do-list { margin: 0; padding: 0; }
+.workspace .to-do-list li { list-style: none; }
+.workspace .drop-zone { min-height: 0; }
+.board-task { display: flex; align-items: flex-start; gap: 5px; padding: 7px 5px; margin: 0 -6px; border-radius: 13px; transition: background .2s ease; }
+.board-task:hover { background: var(--w-hover); }
+.board-task-check, .board-task-more { border: 0; background: transparent; flex: none; color: var(--task-color, var(--w-soft)); width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; }
+.board-task-check { font-size: 17px; }
+.board-task-check:hover, .board-task-more:hover { background: var(--w-hover); }
+.board-task-more { color: var(--w-soft); opacity: 0; }
+.board-task:hover .board-task-more, .board-task-more:focus-visible { opacity: 1; }
+.board-task-content { flex: 1; min-width: 0; padding: 2px 0; border: 0; background: transparent; text-align: left; }
+.board-task-title { display: block; color: var(--w-ink); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.board-task.done .board-task-title { color: var(--w-soft); text-decoration: line-through; }
+.board-task-meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--w-soft); margin-top: 3px; }
+.workspace .fake-drop-zone { min-height: 36px; margin-top: 4px; flex-grow: 0 !important; }
+.workspace .fake-drop-zone * { pointer-events: auto !important; }
+.workspace .fake-lines { display: none; }
+.workspace .fake-drop-zone .todo-item-container { border: 0; padding: 0; position: relative; height: 36px; margin: 0; }
+.workspace .new-todo-input { width: 100%; height: 36px; margin: 0; padding: 0 10px 0 31px; background: transparent; border: 0; border-radius: 12px; color: var(--w-ink); font-size: 13px; }
+.workspace .new-todo-input::placeholder { color: var(--w-soft); }
+.workspace .new-todo-input:hover, .workspace .new-todo-input:focus { background: var(--w-hover); outline: none; }
+.workspace .fake-drop-zone .todo-item-container:before { content: "+"; position: absolute; margin: 7px 0 0 11px; font-size: 16px; color: var(--w-soft); pointer-events: none; }
+.workspace-list-panel { flex: 0 0 290px; min-width: 0; display: flex; flex-direction: column; padding: 14px; background: var(--w-surface); border: 1px solid var(--w-line); border-radius: 22px; }
+.workspace-panel-heading { display: flex; justify-content: space-between; align-items: center; min-height: 28px; }
+.workspace-panel-heading p { font-size: 11px; color: var(--w-soft); margin: 0; }
+.workspace-list-panel .to-do-list-container { flex: 1; padding: 7px 0 0; }
+.workspace-list-panel .weekly-to-do-header { min-height: 45px; border-bottom: 1px solid var(--w-line); }
+.workspace-empty { flex: 1; display: grid; place-items: center; }
+.workspace-empty img { max-width: 240px; width: 50%; opacity: .6; }
+.workspace-sidebar-scrim { display: none; }
+#toDoModal .modal-dialog { position: absolute; top: 10px; bottom: 10px; right: 10px; width: min(440px, calc(100% - 20px)); max-width: none; margin: 0; transform: none; }
+#toDoModal .modal-content { height: 100%; border: 1px solid var(--w-line); border-radius: 24px; background: var(--w-surface); color: var(--w-ink); box-shadow: 0 28px 64px -18px rgba(0,0,0,.35); overflow: hidden; }
+#toDoModal.fullscreen .modal-dialog { inset: 0; width: 100%; height: 100%; }
+#toDoModal.fullscreen .modal-content { border-radius: 0; }
+#toDoModal .modal-body { overflow-y: auto; }
+#toDoModal .modal-header { border-color: var(--w-line); }
+#toDoModal #todo-date-picker-input { width: 130px; color: var(--w-ink); }
+#toDoModal #todo-list-select { width: 150px; color: var(--w-ink); }
+#toDoModal .todo-title, #toDoModal .todo-title-input { font-size: 22px; line-height: 1.3; font-weight: 400; }
+#toDoModal .form-check-input:checked { background-color: var(--w-ink); border-color: var(--w-ink); }
+#toDoModal .modal-content input, #toDoModal .modal-content textarea { color: var(--w-ink); }
+#app-container.dark-theme #toDoModal .modal-content input, #app-container.dark-theme #toDoModal .modal-content textarea { background: var(--w-surface); }
+@media (hover: none) { .board-task-more { opacity: 1; } .workspace .weekly-to-do-header .header-menu-icons { visibility: visible; opacity: 1; } }
+@media (max-width: 1180px) { .workspace-heading h1 { font-size: 28px; } }
+@media (max-width: 900px) {
+  .workspace-sidebar { position: fixed; z-index: 1050; left: 0; top: 0; bottom: 0; width: min(300px, 86vw) !important; padding: 24px 14px 16px 20px !important; background: var(--w-bg); box-shadow: 0 20px 55px rgba(0,0,0,.25); transform: translateX(-105%); }
+  .workspace.sidebar-visible .workspace-sidebar { transform: translateX(0); }
+  .workspace-sidebar-scrim { display: block; position: fixed; z-index: 1049; inset: 0; background: rgba(10,12,16,.24); }
+  .workspace-header { flex-wrap: wrap; padding: 15px 14px 8px; }
+  .workspace-controls { width: 100%; justify-content: space-between; }
+  .workspace-board { padding: 4px 10px 12px; }
+  .workspace .workspace-days > .to-do-list-container { flex: 0 0 80vw; min-width: 260px; }
+  .workspace.day-view .workspace-days > .to-do-list-container { flex-basis: 100%; min-width: 100%; }
+  .workspace-list-panel { flex-basis: 80vw; max-width: 360px; }
+  .workspace.panel-open .workspace-days { display: none; }
+  .workspace.panel-open .workspace-list-panel { flex: 1 1 100%; max-width: none; }
+  #toDoModal .modal-dialog { top: auto; right: 0; left: 0; bottom: 0; width: 100%; height: min(88vh, 720px); }
+  #toDoModal .modal-content { border-radius: 24px 24px 0 0; }
+  #toDoModal .modal-header { flex-wrap: wrap; gap: 6px; }
+  #toDoModal .todo-list-selector { flex: 1 1 100%; min-width: 0; }
+  #toDoModal .modal-header > .d-flex.ms-auto { width: 100%; margin-left: 0 !important; justify-content: space-between; }
+}
+@media (max-width: 600px) {
+  .workspace-heading h1 { font-size: 25px; }
+  .workspace-board { overflow-x: auto; }
+  .workspace-days { flex: 0 0 100%; }
+  .workspace-list-panel { flex: 0 0 100%; }
+  #app-container .app-body { zoom: 100% !important; }
+}
+@media print {
+  #app-container, #app-container.dark-theme { --w-bg: #fff; --w-surface: #fff; --w-ink: #14161a; --w-muted: #565b66; --w-soft: #777; --w-line: #ddd; --w-hover: transparent; background: #fff !important; color: #14161a !important; }
+  #app-container, #app-container .app-body, .workspace, .workspace-main, .workspace-board { height: auto !important; overflow: visible !important; }
+  .workspace-sidebar, .workspace-header, .workspace-sidebar-scrim, .board-task-more, .workspace .fake-drop-zone { display: none !important; }
+  .workspace-days { width: 100%; height: auto; overflow: visible !important; }
+  .workspace-board { display: block; }
+  .workspace .workspace-days > .to-do-list-container { flex-basis: calc(100% / 7); height: auto; overflow: visible; break-inside: avoid; }
+  .workspace-list-panel { display: block; width: 100%; margin-top: 20px; break-before: page; }
+}
+@media (prefers-reduced-motion: reduce) { .workspace *, #toDoModal * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

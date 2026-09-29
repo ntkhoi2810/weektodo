@@ -123,13 +123,6 @@
                     @change="changeConfig('weekStartOnMonday', configData.weekStartOnMonday)" />
                 </div>
                 <div class="form-check form-switch d-flex px-1 mb-3 justify-content-between">
-                  <label class="form-check-label flex-fill" for="moveOldTasks">{{ $t("settings.startCalendarYesterday")
-                  }}</label>
-                  <input class="form-check-input" type="checkbox" id="moveOldTasks"
-                    v-model="configData.startCalendarYesterday"
-                    @change="changeConfig('startCalendarYesterday', configData.startCalendarYesterday)" />
-                </div>
-                <div class="form-check form-switch d-flex px-1 mb-3 justify-content-between">
                   <label class="form-check-label flex-fill" for="autoReorderTasks">{{ $t("settings.autoReorderTasks")
                   }}</label>
                   <input class="form-check-input" type="checkbox" id="autoReorderTasks"
@@ -180,15 +173,6 @@
                   }}</label>
                   <input type="range" class="form-range mt-2 px-2" min="1" max="12" id="columnsConfig"
                     v-model="configData.columns" @change="changeConfig('columns', configData.columns)" />
-                </div>
-
-                <div class="px-1 mb-3">
-                  <label for="columnsConfig" class="form-check-label">{{ $t("settings.lists_columns") }}: {{
-                    configData.customColumns
-                  }}</label>
-                  <input type="range" class="form-range mt-2 px-2" min="1" max="12" id="columnsConfig"
-                    v-model="configData.customColumns"
-                    @change="changeConfig('customColumns', configData.customColumns)" />
                 </div>
 
                 <div class="px-1 mb-3 zoom-config">
