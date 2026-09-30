@@ -87,6 +87,23 @@
 .custom-list-new-task:focus { border-color: var(--w-soft) !important; background: var(--w-surface) !important; }
 .workspace-list-loading { color: var(--w-soft); padding: 20px; }
 .workspace-days { flex: 1; min-width: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.month-calendar { flex: 1; min-width: 0; min-height: 0; overflow: auto; border: 1px solid var(--w-line); border-radius: 18px; background: var(--w-surface); box-shadow: var(--w-shadow); }
+.month-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: 32px repeat(var(--month-weeks), minmax(112px, 1fr)); min-height: 100%; }
+.month-weekday { padding: 7px 10px; border-bottom: 1px solid var(--w-line); color: var(--w-soft); font-size: 11px; font-weight: 600; }
+.month-cell { min-width: 0; min-height: 112px; overflow: auto; padding: 5px 6px; border-right: 1px solid var(--w-line); border-bottom: 1px solid var(--w-line); }
+.month-cell:nth-child(7n) { border-right: 0; }
+.month-cell.outside { background: var(--w-hover); }
+.month-day-number { display: grid; place-items: center; width: 27px; height: 27px; margin: 0 0 4px auto; border: 0; border-radius: 50%; background: transparent; color: var(--w-muted); font-size: 12px; }
+.month-day-number:hover { background: var(--w-hover); }
+.month-cell.today .month-day-number { background: var(--w-ink); color: var(--w-surface); }
+.month-cell.outside .month-day-number { color: var(--w-soft); }
+.month-cell-tasks { display: flex; flex-direction: column; gap: 2px; }
+.month-task { display: flex; min-width: 0; width: 100%; align-items: center; gap: 4px; padding: 3px 5px; border: 0; border-left: 3px solid var(--month-task-color, var(--w-soft)); border-radius: 4px; background: var(--w-hover); color: var(--w-ink); text-align: left; font-size: 11px; }
+.month-task:hover { filter: brightness(.94); }
+.month-task-time { flex: none; color: var(--w-muted); font-size: 10px; }
+.month-task-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.month-more { align-self: flex-start; border: 0; background: transparent; color: var(--w-muted); font-size: 11px; }
+.month-more:hover { color: var(--w-ink); text-decoration: underline; }
 .workspace .workspace-days > .to-do-list-container { flex: 0 0 calc(100% / var(--visible-days)); min-width: 150px; scroll-snap-align: start; }
 .workspace .to-do-list-container { height: 100%; min-height: 0; min-width: 0; padding: 16px 14px 8px; margin: 0; border-radius: 22px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--w-line) transparent; }
 .workspace .to-do-list-container:has(.today-date) { background: var(--w-surface); box-shadow: var(--w-shadow); }
@@ -155,6 +172,8 @@
   .workspace.auto-hide .workspace-sidebar-edge { display: block; position: fixed; z-index: 1049; inset: 0 auto 0 0; width: 12px; }
 }
 @media (max-width: 900px) {
+  .month-calendar { overflow: auto; }
+  .month-calendar-grid { min-width: 700px; }
   .workspace-sidebar { position: fixed; z-index: 1050; left: 0; top: 0; bottom: 0; width: min(300px, 86vw) !important; padding: 24px 14px 16px 20px !important; background: var(--w-surface); box-shadow: 0 20px 55px rgba(0,0,0,.25); transform: translateX(-105%); }
   .workspace.sidebar-visible .workspace-sidebar { transform: translateX(0); }
   .workspace-sidebar-scrim { display: block; position: fixed; z-index: 1049; inset: 0; background: rgba(10,12,16,.24); }
@@ -181,6 +200,9 @@
   #app-container .app-body { zoom: 100% !important; }
 }
 @media print {
+  .month-calendar { overflow: visible; box-shadow: none; }
+  .month-calendar-grid { min-width: 0; grid-template-rows: 28px repeat(var(--month-weeks), minmax(115px, auto)); }
+  .month-cell { overflow: visible; break-inside: avoid; }
   #app-container, #app-container.dark-theme { --w-bg: #fff; --w-surface: #fff; --w-ink: #14161a; --w-muted: #565b66; --w-soft: #777; --w-line: #ddd; --w-hover: transparent; background: #fff !important; color: #14161a !important; }
   #app-container, #app-container .app-body, .workspace, .workspace-main, .workspace-board { height: auto !important; overflow: visible !important; }
   .workspace-sidebar, .workspace-header, .workspace-sidebar-scrim, .board-task-more, .workspace .fake-drop-zone { display: none !important; }

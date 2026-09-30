@@ -25,14 +25,17 @@
           <div v-if="section === 'schedule' && showCalendar" class="workspace-segment" role="group" :aria-label="$t('ui.view')">
             <button type="button" :class="{ active: viewMode === 'week' }" :aria-pressed="viewMode === 'week'" @click="viewMode = 'week'">{{ $t('ui.week') }}</button>
             <button type="button" :class="{ active: viewMode === 'day' }" :aria-pressed="viewMode === 'day'" @click="viewMode = 'day'">{{ $t('ui.day') }}</button>
+            <button type="button" :class="{ active: viewMode === 'month' }" :aria-pressed="viewMode === 'month'" @click="viewMode = 'month'">{{ $t('ui.month') }}</button>
           </div>
           <button type="button" class="workspace-icon-button" :aria-label="$t('settings.darkTheme')" :aria-pressed="config.darkTheme" @click="toggleTheme"><i :class="config.darkTheme ? 'bi-sun' : 'bi-moon'"></i></button>
         </div>
       </header>
       <div class="workspace-board">
-        <div v-if="section === 'schedule' && showCalendar" ref="weekListContainer" class="workspace-days" :style="dayWidthStyle">
+        <month-calendar v-if="section === 'schedule' && showCalendar && viewMode === 'month'"
+          :selected-date="selectedDate || todayKey" :today-key="todayKey" @focus-day="focusDay" @open-task="openMonthTask" />
+        <div v-else-if="section === 'schedule' && showCalendar" ref="weekListContainer" class="workspace-days" :style="dayWidthStyle">
           <to-do-list v-for="date in visibleDates" :key="date" :id="date" :show-custom-list="showCustomList"
-            @todo-list-mounted="$emit('todo-list-mounted')" @focus-day="focusDay" />
+            @todo-list-mounted="onTodoListMounted" @focus-day="focusDay" />
         </div>
         <custom-list-view v-else-if="section === 'list' && selectedListId" :key="selectedListId" :id="selectedListId" />
         <div v-else class="workspace-empty">
@@ -48,14 +51,15 @@ import moment from "moment";
 import WorkspaceSidebar from "./WorkspaceSidebar.vue";
 import toDoList from "../toDoList.vue";
 import CustomListView from "./CustomListView.vue";
+import MonthCalendar from "./MonthCalendar.vue";
 import configRepository from "../../repositories/configRepository";
 
 export default {
   name: "WorkspaceMain",
-  components: { WorkspaceSidebar, toDoList, CustomListView },
+  components: { WorkspaceSidebar, toDoList, CustomListView, MonthCalendar },
   props: { selectedDate: String },
   emits: ["change-date", "todo-list-mounted"],
-  data() { return { viewMode: "week", section: this.$store.getters.config.calendar ? "schedule" : "list", sidebarOpen: !this.$store.getters.config.autoHideSidebar && window.innerWidth >= 1180, viewportWidth: window.innerWidth, hideTimer: null, selectedListId: null, todayKey: moment().format("YYYYMMDD") }; },
+  data() { return { viewMode: "week", section: this.$store.getters.config.calendar ? "schedule" : "list", sidebarOpen: !this.$store.getters.config.autoHideSidebar && window.innerWidth >= 1180, viewportWidth: window.innerWidth, hideTimer: null, selectedListId: null, todayKey: moment().format("YYYYMMDD"), pendingMonthTask: null }; },
   computed: {
     config() { return this.$store.getters.config; },
     autoHideSidebar() { return !!this.config.autoHideSidebar; },
@@ -74,10 +78,12 @@ export default {
     heading() {
       if (this.section === "list") return this.lists.find(list => list.listId === this.selectedListId)?.listName || this.$t("todoDetails.todoLists");
       const date = moment(this.selectedDate || this.todayKey, "YYYYMMDD").locale(this.config.language);
+      if (this.viewMode === "month") return date.format("MMMM YYYY");
       return this.viewMode === "day" ? date.format("dddd, D MMMM") : this.weekStart.clone().locale(this.config.language).format("MMMM YYYY");
     },
     subheading() {
       if (this.section === "list") return this.$t("todoDetails.independentList");
+      if (this.viewMode === "month") return "";
       if (this.viewMode === "day") return moment(this.selectedDate || this.todayKey, "YYYYMMDD").locale(this.config.language).format("LL");
       const end = this.weekStart.clone().add(6, "days");
       return `${this.weekStart.clone().locale(this.config.language).format("D MMM")} – ${end.locale(this.config.language).format("D MMM YYYY")}`;
@@ -154,9 +160,52 @@ export default {
       if (!this.autoHideSidebar || !this.isDesktop) return;
       if (!event.currentTarget.contains(event.relatedTarget)) this.scheduleHide();
     },
-    step(direction) { this.selectDate(moment(this.selectedDate || this.todayKey, "YYYYMMDD").add(direction * (this.viewMode === "week" ? 7 : 1), "days").format("YYYYMMDD")); },
+    step(direction) {
+      const date = moment(this.selectedDate || this.todayKey, "YYYYMMDD");
+      this.selectDate(this.viewMode === "month"
+        ? date.startOf("month").add(direction, "months").format("YYYYMMDD")
+        : date.add(direction * (this.viewMode === "week" ? 7 : 1), "days").format("YYYYMMDD"));
+    },
     selectDate(date) { this.section = "schedule"; this.$emit("change-date", date); if (window.innerWidth <= 900) this.sidebarOpen = false; },
     focusDay(date) { this.viewMode = "day"; this.selectDate(date); },
+    openMonthTask(entry) {
+      if (entry.virtual) {
+        this.pendingMonthTask = entry;
+        this.focusDay(entry.listId);
+        return;
+      }
+      const open = () => {
+        const task = (this.$store.getters.todoLists[entry.listId] || [])[entry.index];
+        if (task) this.showTask(task, entry.index);
+      };
+      if (this.$store.getters.todoLists[entry.listId]) open();
+      else this.$store.dispatch("loadTodoLists", entry.listId).then(open);
+    },
+    onTodoListMounted(listId) {
+      this.$emit("todo-list-mounted");
+      const pending = this.pendingMonthTask;
+      if (!pending || pending.listId !== listId) return;
+      this.pendingMonthTask = null;
+      const tasks = this.$store.getters.todoLists[listId] || [];
+      let index = tasks.findIndex(task => task.repeatingEvent === pending.repeatingEventId && task.deadlineDate === pending.task.deadlineDate);
+      if (index < 0) {
+        const toDoListRepository = require("../../repositories/toDoListRepository").default;
+        const repeatingEventByDateRepository = require("../../repositories/repeatingEventByDateRepository").default;
+        const task = { ...pending.task };
+        this.$store.commit("addTodo", task);
+        index = tasks.length - 1;
+        toDoListRepository.update(listId, tasks);
+        const generated = this.$store.getters.repeatingEventByDate[listId] || {};
+        generated[pending.repeatingEventId] = true;
+        repeatingEventByDateRepository.update(listId, generated);
+      }
+      this.$nextTick(() => this.showTask(tasks[index], index));
+    },
+    showTask(task, index) {
+      const { Modal } = require("bootstrap");
+      this.$store.commit("actionsSelectedTodoIdUpdate", { toDo: task, index });
+      Modal.getOrCreateInstance(document.getElementById("toDoModal"), { keyboard: false }).show();
+    },
     selectList(id) { this.selectedListId = id; this.section = "list"; if (window.innerWidth <= 900) this.sidebarOpen = false; },
     toggleTheme() {
       this.$store.commit("updateConfig", { key: "darkTheme", val: !this.config.darkTheme });

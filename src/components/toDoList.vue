@@ -67,9 +67,9 @@ export default {
       this.$store.dispatch("loadRepeatingEventGeneratedByDate", listId).then(() => {
         this.loading = false;
         repeatingEventHelper.generateRepeatingEventsIntances(listId, this);
+        this.$emit("todoListMounted", listId);
       });
       this.clearRemovedRepeatingEvents();
-      this.$emit("todoListMounted", listId);
     });
   },
   unmounted() {
