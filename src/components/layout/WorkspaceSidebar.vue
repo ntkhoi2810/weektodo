@@ -1,6 +1,6 @@
 <template>
   <aside class="workspace-sidebar" :class="{ open }" aria-label="WeekToDo sidebar">
-    <div class="workspace-brand"><img src="/icon-mono.svg" alt="" /> <span>weektodo</span>
+    <div class="workspace-brand"><img src="/weektodo-icon-mono.svg" alt="" /> <span>weektodo</span>
       <button v-if="desktop" type="button" class="workspace-sidebar-pin"
         :aria-label="$t(autoHide ? 'ui.pinSidebar' : 'ui.unpinSidebar')" :title="$t(autoHide ? 'ui.pinSidebar' : 'ui.unpinSidebar')"
         :aria-pressed="!autoHide" @click="$emit('toggle-auto-hide')">

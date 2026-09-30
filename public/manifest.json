@@ -3,7 +3,7 @@
     "short_name": "WeekToDo",
     "icons": [
         {
-            "src": "icon-mono.png",
+            "src": "weektodo-icon-mono.png",
             "sizes": "512x512",
             "type": "image/png"
         }

@@ -10,7 +10,7 @@
         <div class="d-flex justify-content-center align-items-center" style="margin-bottom: 2.2rem">
           <img
             class="logo"
-            src="/icon-mono.svg"
+            src="/weektodo-icon-mono.svg"
             alt="WeekToDo Logo"
             style="display: inline"
           />

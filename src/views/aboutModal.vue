@@ -10,7 +10,7 @@
           <div class="d-flex flex-column" style="text-align: center; margin-top: 10px">
             <img
               class="logo align-self-center"
-              src="/icon-mono.svg"
+              src="/weektodo-icon-mono.svg"
               alt="WeekToDo"
               title="WeekToDo Logo"
               width="128"

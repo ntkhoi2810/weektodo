@@ -47,7 +47,7 @@ export default {
   createNotification(header, body, notificationSound) {
     new Notification(header, {
       body: body,
-      icon: "/icon-mono.png",
+      icon: "/weektodo-icon-mono.png",
       silent: true,
     });
     this.playNotificationSound(notificationSound);

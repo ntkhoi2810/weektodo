@@ -36,7 +36,7 @@
         </div>
         <custom-list-view v-else-if="section === 'list' && selectedListId" :key="selectedListId" :id="selectedListId" />
         <div v-else class="workspace-empty">
-          <img src="/icon-mono.svg" alt="WeekToDo" />
+          <img src="/weektodo-icon-mono.svg" alt="WeekToDo" />
         </div>
       </div>
     </main>

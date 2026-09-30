@@ -230,7 +230,7 @@ export default {
         function () {
           new Notification("WeekToDo", {
             body: this.initialNotificationText(),
-            icon: "/icon-mono.png",
+            icon: "/weektodo-icon-mono.png",
             silent: true,
           }).onclick = () => {
             this.ipcRenderer.send("show-current-window");

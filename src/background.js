@@ -27,7 +27,7 @@ async function createWindow() {
     minWidth: 1000,
     minHeight: 600,
     show: !config.get("runInBackground"),
-    icon: path.join(__dirname, 'icon-mono.png'),
+    icon: path.join(__dirname, 'weektodo-icon-mono.png'),
     webPreferences: {
       nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
       contextIsolation: false,

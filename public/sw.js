@@ -1,4 +1,4 @@
-var cacheName = "v2.2.0-icon-mono";
+var cacheName = "v2.2.0-weektodo-icon-mono";
 
 var contentToCache = [
   "/",
@@ -6,9 +6,9 @@ var contentToCache = [
   "js/chunk-vendors.js",
   "/Avatar.webp",
   "/fonts/bootstrap-icons.1ed478a6.woff2",
-  "/icon-mono.svg",
+  "/weektodo-icon-mono.svg",
   "/manifest.json",
-  "/icon-mono.png"
+  "/weektodo-icon-mono.png"
 ];
 
 self.addEventListener("install", (e) => {

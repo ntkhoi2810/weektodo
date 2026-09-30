@@ -2,7 +2,7 @@
   <div class="side-bar">
     <img
       class="logo"
-      src="/icon-mono.svg"
+      src="/weektodo-icon-mono.svg"
       width="42"
       height="42"
       alt="WeekTodo Logo"
