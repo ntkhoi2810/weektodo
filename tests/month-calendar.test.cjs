@@ -4,18 +4,21 @@ const Module = require("module");
 const babel = require("@babel/core");
 const { RRule } = require("rrule");
 
-function load(filename) {
+function load(filename, overrides = {}) {
   const compiled = babel.transformFileSync(filename, {
     babelrc: false, configFile: false, plugins: ["@babel/plugin-transform-modules-commonjs"],
   }).code;
   const moduleInstance = new Module(filename, module);
   moduleInstance.filename = filename;
   moduleInstance.paths = Module._nodeModulePaths(path.dirname(filename));
+  const originalRequire = moduleInstance.require.bind(moduleInstance);
+  moduleInstance.require = name => name in overrides ? overrides[name] : originalRequire(name);
   moduleInstance._compile(compiled, filename);
   return moduleInstance.exports;
 }
 
-const { monthDays, monthDeadlineEntries } = load(path.resolve(__dirname, "../src/helpers/monthCalendar.js"));
+const deadline = load(path.resolve(__dirname, "../src/helpers/deadline.js"));
+const { monthDays, monthDeadlineEntries } = load(path.resolve(__dirname, "../src/helpers/monthCalendar.js"), { "./deadline": deadline });
 const monday = monthDays("20260930", true);
 assert.strictEqual(monday[0], "20260831");
 assert.strictEqual(monday[monday.length - 1], "20261004");
