@@ -1,5 +1,5 @@
 <template>
-  <div class="workspace" :class="{ 'sidebar-visible': sidebarOpen, 'auto-hide': autoHideSidebar && isDesktop, 'day-view': viewMode === 'day', 'list-view': section === 'list' }">
+  <div class="workspace" :class="{ 'sidebar-visible': sidebarOpen, 'auto-hide': autoHideSidebar && isDesktop, 'day-view': viewMode === 'day', 'list-view': section === 'list' || section === 'all' }">
     <div v-if="sidebarOpen" class="workspace-sidebar-scrim" @click="sidebarOpen = false"></div>
     <div v-if="autoHideSidebar && isDesktop && !sidebarOpen" class="workspace-sidebar-edge"
       aria-hidden="true" @pointerenter="openOnEdgeHover"></div>
@@ -9,7 +9,7 @@
       :auto-hide="autoHideSidebar" :desktop="isDesktop"
       @pointerenter="cancelHide" @pointerleave="scheduleHide" @focusout="onSidebarFocusOut"
       @toggle-auto-hide="toggleAutoHide"
-      @change-date="selectDate" @select-list="selectList" @list-created="selectList" />
+      @change-date="selectDate" @select-list="selectList" @select-all="selectAll" @list-created="selectList" />
     <main class="workspace-main">
       <header class="workspace-header">
         <div class="workspace-heading">
@@ -38,6 +38,8 @@
             @todo-list-mounted="onTodoListMounted" @focus-day="focusDay" />
         </div>
         <custom-list-view v-else-if="section === 'list' && selectedListId" :key="selectedListId" :id="selectedListId" />
+        <all-tasks-view v-else-if="section === 'all'" :today-key="todayKey"
+          @navigate-source="navigateSource" @summary-change="allTasksSummary = $event" />
         <div v-else class="workspace-empty">
           <img src="/weektodo-icon-mono.svg" alt="WeekToDo" />
         </div>
@@ -52,14 +54,15 @@ import WorkspaceSidebar from "./WorkspaceSidebar.vue";
 import toDoList from "../toDoList.vue";
 import CustomListView from "./CustomListView.vue";
 import MonthCalendar from "./MonthCalendar.vue";
+import AllTasksView from "./AllTasksView.vue";
 import configRepository from "../../repositories/configRepository";
 
 export default {
   name: "WorkspaceMain",
-  components: { WorkspaceSidebar, toDoList, CustomListView, MonthCalendar },
+  components: { WorkspaceSidebar, toDoList, CustomListView, MonthCalendar, AllTasksView },
   props: { selectedDate: String },
   emits: ["change-date", "todo-list-mounted"],
-  data() { return { viewMode: "week", section: this.$store.getters.config.calendar ? "schedule" : "list", sidebarOpen: !this.$store.getters.config.autoHideSidebar && window.innerWidth >= 1180, viewportWidth: window.innerWidth, hideTimer: null, selectedListId: null, todayKey: moment().format("YYYYMMDD"), pendingMonthTask: null }; },
+  data() { return { viewMode: "week", section: this.$store.getters.config.calendar ? "schedule" : "list", sidebarOpen: !this.$store.getters.config.autoHideSidebar && window.innerWidth >= 1180, viewportWidth: window.innerWidth, hideTimer: null, selectedListId: null, todayKey: moment().format("YYYYMMDD"), pendingMonthTask: null, allTasksSummary: { total: 0, overdue: 0 } }; },
   computed: {
     config() { return this.$store.getters.config; },
     autoHideSidebar() { return !!this.config.autoHideSidebar; },
@@ -76,12 +79,18 @@ export default {
     visibleDates() { return this.viewMode === "day" ? [this.selectedDate || this.todayKey] : this.weekDates; },
     dayWidthStyle() { return { "--visible-days": this.viewMode === "day" ? 1 : Math.min(7, Math.max(1, Number(this.config.columns) || 5)) }; },
     heading() {
+      if (this.section === "all") return this.$t("allTasks.title");
       if (this.section === "list") return this.lists.find(list => list.listId === this.selectedListId)?.listName || this.$t("todoDetails.todoLists");
       const date = moment(this.selectedDate || this.todayKey, "YYYYMMDD").locale(this.config.language);
       if (this.viewMode === "month") return date.format("MMMM YYYY");
       return this.viewMode === "day" ? date.format("dddd, D MMMM") : this.weekStart.clone().locale(this.config.language).format("MMMM YYYY");
     },
     subheading() {
+      if (this.section === "all") {
+        const parts = [`${this.allTasksSummary.total} ${this.$t("ui.pending")}`];
+        if (this.allTasksSummary.overdue > 0) parts.push(`${this.allTasksSummary.overdue} ${this.$t("allTasks.overdue").toLowerCase()}`);
+        return parts.join(" · ");
+      }
       if (this.section === "list") return this.$t("todoDetails.independentList");
       if (this.viewMode === "month") return "";
       if (this.viewMode === "day") return moment(this.selectedDate || this.todayKey, "YYYYMMDD").locale(this.config.language).format("LL");
@@ -92,11 +101,11 @@ export default {
   watch: {
     lists: { immediate: true, deep: true, handler(lists) {
       if (!lists.some(list => list.listId === this.selectedListId)) this.selectedListId = lists[0] ? lists[0].listId : null;
-      if (!this.selectedListId && this.showCalendar) this.section = "schedule";
+      if (this.section === "list" && !this.selectedListId && this.showCalendar) this.section = "schedule";
     } },
     weekDates: { immediate: true, handler(dates) { this.$store.commit("updateSelectedDates", dates); } },
-    showCalendar(value) { if (!value && this.showCustomList) this.section = "list"; else if (value && !this.showCustomList) this.section = "schedule"; },
-    showCustomList(value) { if (!value && this.showCalendar) this.section = "schedule"; else if (value && !this.showCalendar) this.section = "list"; },
+    showCalendar(value) { if (!value && this.section === "schedule" && this.showCustomList) this.section = "list"; else if (value && !this.showCustomList && this.section === "list") this.section = "schedule"; },
+    showCustomList(value) { if (!value && this.section === "list" && this.showCalendar) this.section = "schedule"; else if (value && !this.showCalendar && this.section === "schedule") this.section = "list"; },
     autoHideSidebar(value) {
       this.cancelHide();
       if (this.isDesktop) this.sidebarOpen = !value;
@@ -207,6 +216,11 @@ export default {
       Modal.getOrCreateInstance(document.getElementById("toDoModal"), { keyboard: false }).show();
     },
     selectList(id) { this.selectedListId = id; this.section = "list"; if (window.innerWidth <= 900) this.sidebarOpen = false; },
+    selectAll() { this.section = "all"; if (window.innerWidth <= 900) this.sidebarOpen = false; },
+    navigateSource({ type, id }) {
+      if (type === "custom") this.selectList(id);
+      else if (type === "calendar") this.focusDay(id);
+    },
     toggleTheme() {
       this.$store.commit("updateConfig", { key: "darkTheme", val: !this.config.darkTheme });
       configRepository.update(this.config);

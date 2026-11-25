@@ -24,15 +24,25 @@
           :aria-label="day.label" :aria-pressed="day.selected" @click="$emit('change-date', day.key)">{{ day.number }}</button>
       </div>
     </div>
-    <nav v-if="showCustomList" class="workspace-lists" :aria-label="$t('todoDetails.todoLists')">
+    <nav v-if="showCustomList || showCalendar" class="workspace-lists" :aria-label="$t('todoDetails.todoLists')">
       <div class="workspace-section-title">{{ $t('todoDetails.todoLists') }}</div>
-      <button v-for="list in lists" :key="list.listId" type="button" class="workspace-list-link"
-        :class="{ selected: activeSection === 'list' && selectedListId === list.listId }" :aria-pressed="activeSection === 'list' && selectedListId === list.listId"
-        @click="$emit('select-list', list.listId)">
-        <span class="workspace-list-dot"></span><span class="workspace-list-name">{{ list.listName || $t('generatedData.list1') }}</span>
-        <span class="workspace-list-count">{{ pending(list.listId) }}</span>
+      <button type="button" class="workspace-list-link workspace-all-tasks-link"
+        :class="{ selected: activeSection === 'all' }" :aria-pressed="activeSection === 'all'"
+        @click="$emit('select-all')">
+        <i class="bi-collection" aria-hidden="true"></i>
+        <span class="workspace-list-name">{{ $t('allTasks.title') }}</span>
+        <span v-if="allSummary.overdue > 0" class="workspace-overdue-badge" :title="$t('allTasks.overdue')">{{ allSummary.overdue }}</span>
+        <span class="workspace-list-count">{{ allSummary.total }}</span>
       </button>
-      <button class="workspace-list-add" type="button" @click="newCustomTodoList"><i class="bi-plus-lg"></i> {{ $t('ui.newCustomList') }}</button>
+      <template v-if="showCustomList">
+        <button v-for="list in lists" :key="list.listId" type="button" class="workspace-list-link"
+          :class="{ selected: activeSection === 'list' && selectedListId === list.listId }" :aria-pressed="activeSection === 'list' && selectedListId === list.listId"
+          @click="$emit('select-list', list.listId)">
+          <span class="workspace-list-dot"></span><span class="workspace-list-name">{{ list.listName || $t('generatedData.list1') }}</span>
+          <span class="workspace-list-count">{{ pending(list.listId) }}</span>
+        </button>
+        <button class="workspace-list-add" type="button" @click="newCustomTodoList"><i class="bi-plus-lg"></i> {{ $t('ui.newCustomList') }}</button>
+      </template>
     </nav>
     <div class="workspace-sidebar-bottom">
       <button type="button" data-bs-toggle="modal" data-bs-target="#RecurrentEventsModal"><i class="bi-arrow-repeat"></i><span>{{ $t('ui.recurringTasks') }}</span></button>
@@ -51,6 +61,7 @@
 import moment from "moment";
 import customToDoListIdsRepository from "../../repositories/customToDoListIdsRepository";
 import toDoListRepository from "../../repositories/toDoListRepository";
+import { collectAllTasks, computeTaskSummary } from "../../helpers/allTasks";
 
 export default {
   name: "WorkspaceSidebar",
@@ -64,10 +75,15 @@ export default {
     autoHide: Boolean,
     desktop: Boolean,
   },
-  emits: ["change-date", "select-list", "list-created", "toggle-auto-hide"],
+  emits: ["change-date", "select-list", "select-all", "list-created", "toggle-auto-hide"],
   data() { return { calendarMonth: moment().startOf("month") }; },
   computed: {
     lists() { return this.$store.getters.cTodoListIds || []; },
+    allSummary() {
+      const entries = collectAllTasks(this.$store.getters.todoLists, this.lists, { now: moment() })
+        .filter(entry => (entry.sourceType === "custom" ? this.showCustomList : this.showCalendar));
+      return computeTaskSummary(entries);
+    },
     monthLabel() { return this.calendarMonth.clone().locale(this.$store.getters.config.language).format("MMMM YYYY"); },
     dayLabels() {
       const base = moment().startOf("day");
@@ -91,8 +107,10 @@ export default {
   },
   watch: { selectedDate(value) { if (value) this.calendarMonth = moment(value, "YYYYMMDD").startOf("month"); } },
   mounted() {
-    this.lists.forEach(list => {
-      if (!this.$store.getters.todoLists[list.listId]) this.$store.dispatch("loadTodoLists", list.listId);
+    this.$store.dispatch("loadAllTodoLists").then(() => {
+      this.lists.forEach(list => {
+        if (!this.$store.getters.todoLists[list.listId]) this.$store.dispatch("loadTodoLists", list.listId);
+      });
     });
   },
   methods: {

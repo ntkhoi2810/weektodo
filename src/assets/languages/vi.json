@@ -252,6 +252,27 @@
     "customWeekdays": "Ngày trong tuần Tùy chỉnh",
     "daysOfMonth": "Ngày trong tháng"
   },
+  "allTasks": {
+    "title": "Tất cả công việc",
+    "summary": "Tóm tắt công việc",
+    "all": "Tất cả",
+    "overdue": "Quá hạn",
+    "tomorrow": "Ngày mai",
+    "upcoming": "Sắp tới",
+    "searchPlaceholder": "Tìm công việc, ghi chú, danh sách…",
+    "filterBySource": "Lọc theo nguồn",
+    "allSources": "Tất cả nguồn",
+    "customListsOnly": "Chỉ To-do-list",
+    "calendarOnly": "Chỉ Lịch",
+    "allColors": "Tất cả màu",
+    "groupBy": "Gom nhóm theo",
+    "byDeadline": "Theo hạn chót",
+    "byList": "Theo danh sách",
+    "emptyPending": "Tuyệt vời! Bạn không còn công việc nào đang chờ.",
+    "noMatches": "Không tìm thấy công việc phù hợp với bộ lọc.",
+    "resetFilters": "Xóa bộ lọc",
+    "targetList": "Thêm vào danh sách"
+  },
   "notifications": {
     "noPendingTasksToday": "Bạn không có công việc nào được lên lịch hôm nay.",
     "pendingTasksYesterday": "Bạn có {0} công việc đang chờ hôm qua.",

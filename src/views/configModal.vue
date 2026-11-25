@@ -208,7 +208,7 @@
             </div>
             <div class="tab-pane fade" id="config-notifications">
               <div class="d-flex flex-column mt-3 h-100">
-                <div v-if="isElectron()" class="orm-check form-switch d-flex px-0 mb-3  justify-content-between">
+                <div v-if="isElectron()" class="form-check form-switch d-flex px-0 mb-3  justify-content-between">
                   <label class="form-check-label" style="margin-left: 0px" for="notificationOnStartup">{{
                     $t("settings.notificationOnStartup")
                   }}</label>
@@ -319,7 +319,7 @@
       </div>
     </div>
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1056">
-      <toast-message ref="invalidFile" id="invalidFile" text="$t('settings.invalidFile')"></toast-message>
+      <toast-message ref="invalidFile" id="invalidFile" :text="$t('settings.invalidFile')"></toast-message>
     </div>
   </div>
 </template>
@@ -428,11 +428,11 @@ export default {
     configLinks: function () {
       return configList.configList(this);
     },
-    watch: {
-      configProp: function (newVal) {
-        this.configData = newVal;
-      }
-    }
+  },
+  watch: {
+    configProp: function (newVal) {
+      this.configData = newVal;
+    },
   },
 };
 </script>

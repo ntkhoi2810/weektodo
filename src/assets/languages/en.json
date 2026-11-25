@@ -252,6 +252,27 @@
     "customWeekdays": "Custom Weekdays",
     "daysOfMonth": "Days of Month"
   },
+  "allTasks": {
+    "title": "All tasks",
+    "summary": "Task summary",
+    "all": "All",
+    "overdue": "Overdue",
+    "tomorrow": "Tomorrow",
+    "upcoming": "Upcoming",
+    "searchPlaceholder": "Search tasks, notes, lists…",
+    "filterBySource": "Filter by source",
+    "allSources": "All sources",
+    "customListsOnly": "To-do-lists only",
+    "calendarOnly": "Calendar only",
+    "allColors": "All colors",
+    "groupBy": "Group by",
+    "byDeadline": "By deadline",
+    "byList": "By list",
+    "emptyPending": "All caught up! No pending tasks left.",
+    "noMatches": "No tasks match your current filters.",
+    "resetFilters": "Reset filters",
+    "targetList": "Add to list"
+  },
   "notifications": {
     "noPendingTasksToday": "You have no scheduled tasks today.",
     "pendingTasksYesterday": "You have {0} pending tasks yesterday.",

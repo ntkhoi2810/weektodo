@@ -6,7 +6,7 @@
         <button type="button" class="month-day-number" :aria-label="dayLabel(date)" @click="$emit('focus-day', date)">{{ dayNumber(date) }}</button>
         <div class="month-cell-tasks">
           <button v-for="(entry, index) in visibleEntries(date)" :key="index" type="button"
-            class="month-task" :title="entry.task.text" :style="taskStyle(entry.task)"
+            class="month-task" :class="{ 'is-overdue': isOverdueTask(entry.task) }" :title="entry.task.text" :style="taskStyle(entry.task)"
             @click="$emit('open-task', entry)">
             <span v-if="entry.task.deadlineTime" class="month-task-time">{{ entry.task.deadlineTime }}</span>
             <span class="month-task-title">{{ entry.task.text }}</span>
@@ -25,6 +25,7 @@
 import moment from "moment";
 import dbRepository from "../../repositories/dbRepository";
 import { monthDays, monthDeadlineEntries } from "../../helpers/monthCalendar";
+import { isTaskOverdue } from "../../helpers/deadline";
 
 export default {
   name: "MonthCalendar",
@@ -68,6 +69,7 @@ export default {
     beforePrint() { this.printing = true; },
     afterPrint() { this.printing = false; },
     taskStyle(task) { return task.color && task.color !== "none" ? { '--month-task-color': task.color } : {}; },
+    isOverdueTask(task) { return isTaskOverdue(task); },
     loadData() {
       const generation = ++this.loadGeneration;
       const request = dbRepository.open();

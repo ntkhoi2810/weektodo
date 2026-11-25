@@ -4,8 +4,12 @@
     <div class="custom-list-content">
       <div v-if="loading" class="workspace-list-loading">{{ $t('todoDetails.loading') }}</div>
       <div v-else>
-        <section v-for="group in groups" :key="group.key" class="deadline-group">
-          <h2>{{ group.label }} <span>{{ group.tasks.length }}</span></h2>
+        <section v-for="group in groups" :key="group.key" class="deadline-group" :class="{ 'is-overdue-group': group.overdue }">
+          <h2>
+            {{ group.label }}
+            <span v-if="group.overdue" class="overdue-badge">{{ $t('allTasks.overdue') }}</span>
+            <span>{{ group.tasks.length }}</span>
+          </h2>
           <to-do-item v-for="entry in group.tasks" :key="entry.index" :to-do="entry.task"
             :index="entry.index" :to-do-list-id="id" />
         </section>
@@ -37,7 +41,7 @@ import ListHeader from "../listHeader.vue";
 import ToDoItem from "../toDoItem.vue";
 import toDoListRepository from "../../repositories/toDoListRepository";
 import notifications from "../../helpers/notifications";
-import { groupTasksByDeadline } from "../../helpers/deadline";
+import { groupTasksByDeadline, isDateOverdue } from "../../helpers/deadline";
 
 export default {
   name: "CustomListView",
@@ -54,6 +58,7 @@ export default {
       return this.organization.groups.map(({ date, tasks }) => ({
         key: date,
         label: moment(date, "YYYY-MM-DD").locale(this.$store.getters.config.language).format("LL"),
+        overdue: isDateOverdue(date),
         tasks,
       }));
     },

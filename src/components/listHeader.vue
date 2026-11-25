@@ -114,18 +114,21 @@ export default {
     },
     moveUndoneItems: function () {
       let towmorrow_id = this.moments(this.id).add(1, "d").format("YYYYMMDD");
-      this.$store.commit("moveUndoneItems", {
-        origenId: this.id,
-        destinyId: towmorrow_id,
-      });
-      this.updateTodoList(this.id, this.$store.getters.todoLists[this.id]);
+      const performMove = () => {
+        this.$store.commit("moveUndoneItems", {
+          origenId: this.id,
+          destinyId: towmorrow_id,
+        });
+        this.updateTodoList(this.id, this.$store.getters.todoLists[this.id]);
 
-      if (this.$store.getters.config.autoReorderTasks) {
-        this.updateTodoList(towmorrow_id, tasksHelper.reorderTasksList(this.$store.getters.todoLists[towmorrow_id]));
-      } else {
-        this.updateTodoList(towmorrow_id, this.$store.getters.todoLists[towmorrow_id]);
-      }
-
+        if (this.$store.getters.config.autoReorderTasks) {
+          this.updateTodoList(towmorrow_id, tasksHelper.reorderTasksList(this.$store.getters.todoLists[towmorrow_id]));
+        } else {
+          this.updateTodoList(towmorrow_id, this.$store.getters.todoLists[towmorrow_id]);
+        }
+      };
+      if (this.$store.getters.todoLists[towmorrow_id]) performMove();
+      else this.$store.dispatch("loadTodoLists", towmorrow_id).then(performMove);
     },
     moments: function (date) {
       return moment(date);

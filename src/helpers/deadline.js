@@ -20,6 +20,23 @@ export function deadlineMoment(task) {
   return dateTime.isValid() ? dateTime : null;
 }
 
+export function isDateOverdue(dateStr, now = moment()) {
+  if (!dateStr) return false;
+  const date = moment(dateStr, "YYYY-MM-DD", true);
+  if (!date.isValid()) return false;
+  return date.isBefore(moment(now).startOf("day"));
+}
+
+export function isTaskOverdue(task, now = moment()) {
+  if (!task || task.checked || !task.deadlineDate) return false;
+  const current = moment(now);
+  if (task.deadlineTime) {
+    const dt = deadlineMoment(task);
+    if (dt) return dt.isBefore(current);
+  }
+  return isDateOverdue(task.deadlineDate, current);
+}
+
 export function groupTasksByDeadline(tasks) {
   const dated = new Map();
   const noDeadline = [];

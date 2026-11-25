@@ -310,10 +310,8 @@ export default {
       this.clickhandler.handle(function () { this.checkTodo(resetRepeatinEvent) }.bind(this), function () { })
     },
     checkTodo: function (resetRepeatinEvent = true) {
-      if (this.todo.checked) {
-        if (this.$store.getters.config.moveCompletedTaskToBottom) {
-          this.$store.commit("moveTodoToEnd", { toDoListId: this.todo.listId, index: this.index });
-        }
+      if (this.todo.checked && this.$store.getters.config.moveCompletedTaskToBottom) {
+        this.$store.commit("moveTodoToEnd", { toDoListId: this.todo.listId, index: this.index });
         this.index = this.todoList.length - 1;
       }
       this.updateTodoWithReorder(resetRepeatinEvent);
@@ -386,10 +384,18 @@ export default {
         get_req.onsuccess = function (event) {
           let newTodoList = event.target.result ? event.target.result : [];
           newTodoList.push(instancePointer.todo);
-          instancePointer.todoList = newTodoList;
-          instancePointer.index = newTodoList.length - 1;
-          this.updateTodoList(newListID, instancePointer.todoList);
+          db.close();
+          this.$store.commit("loadTodoLists", { todoListId: newListID, todoList: newTodoList });
+          instancePointer.todoList = this.$store.getters.todoLists[newListID];
+          instancePointer.index = instancePointer.todoList.length - 1;
+          instancePointer.todo = instancePointer.todoList[instancePointer.index];
+          if (this.$store.getters.config.autoReorderTasks) {
+            this.updateTodoList(newListID, tasksHelper.reorderTasksList(instancePointer.todoList));
+          } else {
+            this.updateTodoList(newListID, instancePointer.todoList);
+          }
         }.bind(this);
+        get_req.onerror = function () { db.close(); };
       }.bind(this);
     },
     removeTodo: function () {
@@ -431,10 +437,10 @@ export default {
         checked: this.todo.checked,
         listId: this.todo.listId,
         desc: this.todo.desc,
-        subTaskList: this.todo.subTaskList,
+        subTaskList: (this.todo.subTaskList || []).map(subTask => ({ ...subTask })),
         color: this.todo.color,
-        priority: 0,
-        tags: [],
+        priority: this.todo.priority || 0,
+        tags: [...(this.todo.tags || [])],
         time: this.todo.time,
         deadlineDate: this.todo.deadlineDate,
         deadlineTime: this.todo.deadlineTime,
