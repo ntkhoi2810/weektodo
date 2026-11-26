@@ -100,7 +100,59 @@ assert.deepStrictEqual(
   ["Second visually by date, first in array", "First visually by date, second in array"]
 );
 
-// 4. Vuex reorderTodo, moveTodoBetweenLists, and moveTask + Undo flow
+// 4. Active drag payload fallback & AllTasks deadline group reordering
+taskOps.setDragPayload(null, { toDo: { text: "Drag fallback", listId: "work" }, index: 1, listId: "work" });
+assert.strictEqual(taskOps.isTaskDragEvent({}), true, "activeDragPayload enables drag detection even without dataTransfer");
+assert.deepStrictEqual(taskOps.getDragPayload({}), {
+  listId: "work",
+  index: 1,
+  toDo: { text: "Drag fallback", listId: "work" },
+});
+taskOps.clearDragPayload();
+assert.strictEqual(taskOps.isTaskDragEvent({}), false);
+assert.strictEqual(taskOps.getDragPayload({}), null);
+
+const multiListLists = {
+  work: [
+    { text: "Work task A", checked: false, deadlineDate: "2026-11-26", deadlineTime: "11:00" },
+    { text: "Work task B", checked: false, deadlineDate: "2026-11-26", deadlineTime: "15:00" },
+  ],
+  personal: [
+    { text: "Personal task C", checked: false, deadlineDate: "2026-11-26", deadlineTime: "13:00" },
+  ],
+};
+const multiCustom = [
+  { listId: "work", listName: "Work" },
+  { listId: "personal", listName: "Personal" },
+];
+let initialDeadlineGroups = allTasks.groupAllTasksByDeadline(
+  allTasks.collectAllTasks(multiListLists, multiCustom, { now: thuNow }),
+  thuNow,
+  { preserveManualOrder: true }
+).groups;
+assert.deepStrictEqual(
+  initialDeadlineGroups[0].tasks.map(e => e.task.text),
+  ["Work task A", "Personal task C", "Work task B"]
+);
+
+// Drag "Work task B" (group index 2) before "Work task A" (group index 0)
+const groupReorder = taskOps.reorderGroupTasks(initialDeadlineGroups[0].tasks, 2, 0, "before");
+assert.strictEqual(groupReorder.moved, true);
+assert.deepStrictEqual(groupReorder.affectedListIds.sort(), ["personal", "work"]);
+assert.deepStrictEqual(groupReorder.sameListReorder, { listId: "work", fromIndex: 1, toIndex: 0 });
+
+let reorderedDeadlineGroups = allTasks.groupAllTasksByDeadline(
+  allTasks.collectAllTasks(multiListLists, multiCustom, { now: thuNow }),
+  thuNow,
+  { preserveManualOrder: true }
+).groups;
+assert.deepStrictEqual(
+  reorderedDeadlineGroups[0].tasks.map(e => e.task.text),
+  ["Work task B", "Work task A", "Personal task C"],
+  "AllTasks deadline view must preserve manual order across different lists"
+);
+
+// 5. Vuex reorderTodo, moveTodoBetweenLists, and moveTask + Undo flow
 const state = {
   todoLists: {
     work: [

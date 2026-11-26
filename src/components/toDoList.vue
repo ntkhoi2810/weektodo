@@ -39,6 +39,7 @@ import notifications from "../helpers/notifications";
 import repeatingEventHelper from "../helpers/repeatingEvents.js";
 import {
   buildMovePatch,
+  clearDragPayload,
   computeCrossListIndex,
   computeDropPosition,
   computeReorderIndex,
@@ -141,6 +142,7 @@ export default {
       this.fakeItemsDragHover = false;
 
       const payload = getDragPayload(event);
+      clearDragPayload();
       if (!payload) return;
 
       if (payload.listId === targetListId) {
@@ -166,6 +168,7 @@ export default {
       this.dropTarget = null;
 
       const payload = getDragPayload(event);
+      clearDragPayload();
       if (!payload) return;
 
       if (payload.listId === targetListId) {

@@ -73,10 +73,10 @@
       </div>
       <div v-else>
         <section v-for="group in groups" :key="group.key" class="deadline-group"
-          :class="{ 'is-overdue-group': group.kind === 'overdue', 'is-drop-target': groupBy === 'list' && groupDropHover === group.key }"
-          @dragover="groupBy === 'list' ? onGroupDragOver($event, group.key) : null"
-          @dragleave="groupBy === 'list' ? onGroupDragLeave($event, group.key) : null"
-          @drop="groupBy === 'list' ? onGroupDrop($event, group) : null">
+          :class="{ 'is-overdue-group': group.kind === 'overdue', 'is-drop-target': groupDropHover === group.key }"
+          @dragover.prevent="onGroupDragOver($event, group.key)"
+          @dragleave="onGroupDragLeave($event, group.key)"
+          @drop.prevent="onGroupDrop($event, group)">
           <h2>
             <button v-if="groupBy === 'list'" type="button" class="group-heading-link" @click="openGroupSource(group)">
               <i :class="group.kind === 'calendar' ? 'bi-calendar-event' : 'bi-list-ul'" aria-hidden="true"></i>
@@ -85,25 +85,17 @@
             <template v-else>{{ groupLabel(group) }}</template>
             <span>{{ group.tasks.length }}</span>
           </h2>
-          <template v-if="groupBy === 'list'">
-            <div v-for="entry in group.tasks" :key="entry.key" class="drop-zone"
-              @dragover.stop.prevent="onItemDragOver($event, entry)"
-              @dragenter.stop.prevent="onItemDragOver($event, entry)"
-              @drop.stop.prevent="onItemDrop($event, entry)">
-              <to-do-item :to-do="entry.task" :index="entry.index" :to-do-list-id="entry.listId"
-                :source-label="''" :source-type="entry.sourceType" :is-overdue="entry.isOverdue"
-                :drop-position="dropTarget && dropTarget.key === entry.key ? dropTarget.position : ''"
-                @open-source="openEntrySource(entry)" />
-            </div>
-          </template>
-          <template v-else>
-            <to-do-item v-for="entry in group.tasks" :key="entry.key" :to-do="entry.task"
-              :index="entry.index" :to-do-list-id="entry.listId"
-              :source-label="sourceLabel(entry)"
+          <div v-for="entry in group.tasks" :key="entry.key" class="drop-zone"
+            @dragover.stop.prevent="onItemDragOver($event, entry)"
+            @dragenter.stop.prevent="onItemDragOver($event, entry)"
+            @drop.stop.prevent="onItemDrop($event, entry, group)">
+            <to-do-item :to-do="entry.task" :index="entry.index" :to-do-list-id="entry.listId"
+              :source-label="groupBy === 'deadline' ? sourceLabel(entry) : ''"
               :source-type="entry.sourceType"
               :is-overdue="entry.isOverdue"
+              :drop-position="dropTarget && dropTarget.key === entry.key ? dropTarget.position : ''"
               @open-source="openEntrySource(entry)" />
-          </template>
+          </div>
         </section>
 
         <section v-if="completed.length" class="deadline-group completed-group">
@@ -124,7 +116,7 @@
 
     <quick-add-bar :show-target-selector="true" v-model:target-id="quickAddTarget"
       :today-key="todayKey" :custom-lists="customLists" :show-calendar="showCalendar"
-      :default-preset="bucketFilter === 'today' ? 'today' : bucketFilter === 'tomorrow' ? 'tomorrow' : 'none'"
+      :default-preset="bucketFilter === 'today' ? 'today' : 'none'"
       @add-task="addQuickTask" />
   </section>
 </template>
@@ -139,15 +131,18 @@ import {
   filterAllTasks,
   groupAllTasksByDeadline,
   groupAllTasksByList,
+  isCalendarListId,
 } from "../../helpers/allTasks";
 import {
   buildMovePatch,
+  clearDragPayload,
   computeCrossListIndex,
   computeDropPosition,
   computeReorderIndex,
   createTaskObject,
   getDragPayload,
   isTaskDragEvent,
+  reorderGroupTasks,
 } from "../../helpers/taskOperations";
 import { moveTaskWithFeedback, persistTodoList } from "../../helpers/taskActions";
 
@@ -224,11 +219,10 @@ export default {
       });
     },
     organized() {
+      const preserveManualOrder = !this.config.autoReorderTasks;
       return this.groupBy === "list"
-        ? groupAllTasksByList(this.filteredEntries, this.customLists, {
-            preserveManualOrder: !this.config.autoReorderTasks,
-          })
-        : groupAllTasksByDeadline(this.filteredEntries, moment());
+        ? groupAllTasksByList(this.filteredEntries, this.customLists, { preserveManualOrder })
+        : groupAllTasksByDeadline(this.filteredEntries, moment(), { preserveManualOrder });
     },
     groups() { return this.organized.groups; },
     completed() { return this.organized.completed; },
@@ -329,7 +323,6 @@ export default {
     },
     onGroupDragOver(event, groupKey) {
       if (!isTaskDragEvent(event)) return;
-      event.preventDefault();
       this.dropTarget = null;
       this.groupDropHover = groupKey;
     },
@@ -338,7 +331,7 @@ export default {
         this.groupDropHover = null;
       }
     },
-    async onItemDrop(event, targetEntry) {
+    async onItemDrop(event, targetEntry, targetGroup) {
       const position = this.dropTarget && this.dropTarget.key === targetEntry.key
         ? this.dropTarget.position
         : computeDropPosition(event);
@@ -346,8 +339,48 @@ export default {
       this.groupDropHover = null;
 
       const payload = getDragPayload(event);
+      clearDragPayload();
       if (!payload) return;
 
+      if (this.groupBy === "list") {
+        await this.handleListModeItemDrop(payload, targetEntry, position);
+      } else {
+        await this.handleDeadlineModeDrop(payload, targetGroup, targetEntry, position);
+      }
+    },
+    async onGroupDrop(event, group) {
+      this.dropTarget = null;
+      this.groupDropHover = null;
+
+      const payload = getDragPayload(event);
+      clearDragPayload();
+      if (!payload) return;
+
+      if (this.groupBy === "list") {
+        const targetListId = group.listId;
+        if (payload.listId === targetListId) {
+          const list = this.$store.getters.todoLists[targetListId] || [];
+          if (!list.length) return;
+          const { moved, insertIndex } = computeReorderIndex(payload.index, list.length - 1, "after");
+          if (!moved) return;
+          this.$store.commit("reorderTodo", { listId: targetListId, fromIndex: payload.index, toIndex: insertIndex });
+          persistTodoList(this, targetListId, { reorder: true });
+        } else {
+          const patch = buildMovePatch(payload.toDo, targetListId);
+          await moveTaskWithFeedback(this, {
+            fromListId: payload.listId,
+            fromIndex: payload.index,
+            toListId: targetListId,
+            toIndex: null,
+            patch,
+          });
+        }
+      } else {
+        const lastEntry = group.tasks && group.tasks.length ? group.tasks[group.tasks.length - 1] : null;
+        await this.handleDeadlineModeDrop(payload, group, lastEntry, "after");
+      }
+    },
+    async handleListModeItemDrop(payload, targetEntry, position) {
       if (payload.listId === targetEntry.listId) {
         const { moved, insertIndex } = computeReorderIndex(payload.index, targetEntry.index, position);
         if (!moved) return;
@@ -366,31 +399,86 @@ export default {
         });
       }
     },
-    async onGroupDrop(event, group) {
-      this.dropTarget = null;
-      this.groupDropHover = null;
+    async handleDeadlineModeDrop(payload, targetGroup, targetEntry, position) {
+      const sourceList = this.$store.getters.todoLists[payload.listId];
+      if (!Array.isArray(sourceList) || !sourceList[payload.index]) return;
+      const sourceTask = sourceList[payload.index];
+      const sourceKey = `${payload.listId}:${payload.index}`;
 
-      const payload = getDragPayload(event);
-      if (!payload) return;
+      const fromGroupIndex = targetGroup.tasks.findIndex(e => e.key === sourceKey);
+      const targetGroupIndex = targetEntry
+        ? targetGroup.tasks.findIndex(e => e.key === targetEntry.key)
+        : targetGroup.tasks.length - 1;
 
-      const targetListId = group.listId;
-      if (payload.listId === targetListId) {
-        const list = this.$store.getters.todoLists[targetListId] || [];
-        if (!list.length) return;
-        const { moved, insertIndex } = computeReorderIndex(payload.index, list.length - 1, "after");
-        if (!moved) return;
-        this.$store.commit("reorderTodo", { listId: targetListId, fromIndex: payload.index, toIndex: insertIndex });
-        persistTodoList(this, targetListId, { reorder: true });
-      } else {
-        const patch = buildMovePatch(payload.toDo, targetListId);
-        await moveTaskWithFeedback(this, {
-          fromListId: payload.listId,
-          fromIndex: payload.index,
-          toListId: targetListId,
-          toIndex: null,
-          patch,
-        });
+      // Case 1: Reordering within the same deadline group
+      if (fromGroupIndex >= 0) {
+        if (targetGroupIndex < 0) return;
+        const result = reorderGroupTasks(targetGroup.tasks, fromGroupIndex, targetGroupIndex, position);
+        if (!result.moved) return;
+        if (result.sameListReorder) {
+          this.$store.commit("reorderTodo", result.sameListReorder);
+        }
+        result.affectedListIds.forEach(listId => persistTodoList(this, listId, { reorder: true }));
+        return;
       }
+
+      // Case 2: Dragging across different deadline groups
+      if (targetGroup.kind === "overdue") return;
+
+      const targetDate = targetGroup.kind === "noDeadline" ? null : targetGroup.date;
+      const insertSlot = targetGroupIndex >= 0
+        ? (position === "after" ? targetGroupIndex + 1 : targetGroupIndex)
+        : targetGroup.tasks.length;
+
+      const updatedGroupTasks = [...targetGroup.tasks];
+      updatedGroupTasks.splice(insertSlot, 0, { task: sourceTask, listId: payload.listId, index: payload.index });
+      updatedGroupTasks.forEach((entry, idx) => {
+        if (entry && entry.task) entry.task.manualOrder = idx;
+      });
+
+      const affectedIds = new Set(updatedGroupTasks.map(e => e.listId));
+      affectedIds.add(payload.listId);
+
+      if (isCalendarListId(payload.listId)) {
+        if (targetDate) {
+          const targetCalListId = moment(targetDate, "YYYY-MM-DD", true).format("YYYYMMDD");
+          const patch = sourceTask.deadlineDate ? { deadlineDate: targetDate } : {};
+          if (targetCalListId !== payload.listId) {
+            await moveTaskWithFeedback(this, {
+              fromListId: payload.listId,
+              fromIndex: payload.index,
+              toListId: targetCalListId,
+              toIndex: null,
+              patch,
+            });
+          } else if (sourceTask.deadlineDate !== targetDate) {
+            sourceTask.deadlineDate = targetDate;
+          }
+        } else if (this.customLists.length > 0) {
+          await moveTaskWithFeedback(this, {
+            fromListId: payload.listId,
+            fromIndex: payload.index,
+            toListId: this.customLists[0].listId,
+            toIndex: null,
+            patch: { deadlineDate: null, alarm: false },
+          });
+        }
+      } else {
+        sourceTask.deadlineDate = targetDate;
+        if (!targetDate) sourceTask.alarm = false;
+        if (targetEntry && targetEntry.listId === payload.listId) {
+          const sameList = computeReorderIndex(payload.index, targetEntry.index, position);
+          if (sameList.moved) {
+            this.$store.commit("reorderTodo", { listId: payload.listId, fromIndex: payload.index, toIndex: sameList.insertIndex });
+          }
+        }
+      }
+
+      affectedIds.forEach(listId => {
+        if (this.$store.getters.todoLists[listId]) {
+          persistTodoList(this, listId, { reorder: true });
+        }
+      });
     },
   },
 };

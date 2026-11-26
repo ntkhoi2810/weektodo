@@ -127,7 +127,26 @@ function compareEntries(a, b) {
   return (a.task.text || "").localeCompare(b.task.text || "");
 }
 
-export function groupAllTasksByDeadline(entries, now = moment()) {
+function compareEntriesManual(a, b) {
+  const aHasOrder = typeof a.task.manualOrder === "number" && Number.isFinite(a.task.manualOrder);
+  const bHasOrder = typeof b.task.manualOrder === "number" && Number.isFinite(b.task.manualOrder);
+  if (aHasOrder && bHasOrder && a.task.manualOrder !== b.task.manualOrder) {
+    return a.task.manualOrder - b.task.manualOrder;
+  }
+  if (aHasOrder !== bHasOrder) return aHasOrder ? -1 : 1;
+  const aDate = a.effectiveDate || "9999-99-99";
+  const bDate = b.effectiveDate || "9999-99-99";
+  if (aDate !== bDate) return aDate.localeCompare(bDate);
+  const aTime = a.deadlineTime || "99:99";
+  const bTime = b.deadlineTime || "99:99";
+  if (aTime !== bTime) return aTime.localeCompare(bTime);
+  if (a.listId === b.listId && a.index !== b.index) return a.index - b.index;
+  return (a.task.text || "").localeCompare(b.task.text || "");
+}
+
+export function groupAllTasksByDeadline(entries, now = moment(), options = {}) {
+  const preserveManualOrder = !!(options && options.preserveManualOrder);
+  const sorter = preserveManualOrder ? compareEntriesManual : compareEntries;
   const current = moment(now);
   const todayIso = current.format("YYYY-MM-DD");
   const tomorrowIso = current.clone().add(1, "day").format("YYYY-MM-DD");
@@ -159,15 +178,15 @@ export function groupAllTasksByDeadline(entries, now = moment()) {
   });
 
   const groups = [];
-  if (overdue.length) groups.push({ key: "overdue", kind: "overdue", date: null, tasks: overdue.sort(compareEntries) });
-  if (today.length) groups.push({ key: todayIso, kind: "today", date: todayIso, tasks: today.sort(compareEntries) });
-  if (tomorrow.length) groups.push({ key: tomorrowIso, kind: "tomorrow", date: tomorrowIso, tasks: tomorrow.sort(compareEntries) });
+  if (overdue.length) groups.push({ key: "overdue", kind: "overdue", date: null, tasks: overdue.sort(sorter) });
+  if (today.length) groups.push({ key: todayIso, kind: "today", date: todayIso, tasks: today.sort(sorter) });
+  if (tomorrow.length) groups.push({ key: tomorrowIso, kind: "tomorrow", date: tomorrowIso, tasks: tomorrow.sort(sorter) });
 
   [...futureByDate.keys()].sort().forEach(date => {
-    groups.push({ key: date, kind: "date", date, tasks: futureByDate.get(date).sort(compareEntries) });
+    groups.push({ key: date, kind: "date", date, tasks: futureByDate.get(date).sort(sorter) });
   });
 
-  if (noDeadline.length) groups.push({ key: "noDeadline", kind: "noDeadline", date: null, tasks: noDeadline.sort(compareEntries) });
+  if (noDeadline.length) groups.push({ key: "noDeadline", kind: "noDeadline", date: null, tasks: noDeadline.sort(sorter) });
 
   return { groups, completed };
 }

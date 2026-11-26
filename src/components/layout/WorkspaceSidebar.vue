@@ -72,7 +72,7 @@ import moment from "moment";
 import customToDoListIdsRepository from "../../repositories/customToDoListIdsRepository";
 import toDoListRepository from "../../repositories/toDoListRepository";
 import { collectAllTasks, computeTaskSummary } from "../../helpers/allTasks";
-import { buildMovePatch, getDragPayload, isTaskDragEvent } from "../../helpers/taskOperations";
+import { buildMovePatch, clearDragPayload, getDragPayload, isTaskDragEvent } from "../../helpers/taskOperations";
 import { moveTaskWithFeedback } from "../../helpers/taskActions";
 
 export default {
@@ -155,6 +155,7 @@ export default {
     async onCalendarDrop(event, day) {
       this.dropTargetKey = null;
       const payload = getDragPayload(event);
+      clearDragPayload();
       if (!payload || payload.listId === day.key) return;
       const patch = buildMovePatch(payload.toDo, day.key);
       const label = day.today ? this.$t("ui.today") : moment(day.key, "YYYYMMDD", true).locale(this.$store.getters.config.language).format("D MMM");
@@ -171,6 +172,7 @@ export default {
     async onListDrop(event, list) {
       this.dropTargetKey = null;
       const payload = getDragPayload(event);
+      clearDragPayload();
       if (!payload || payload.listId === list.listId) return;
       const label = list.listName || this.$t("generatedData.list1");
       await moveTaskWithFeedback(this, {

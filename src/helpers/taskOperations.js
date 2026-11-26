@@ -33,52 +33,96 @@ export function computeDropPosition(event) {
   return event.clientY < rect.top + rect.height / 2 ? "before" : "after";
 }
 
+let activeDragPayload = null;
+
 export function isTaskDragEvent(event) {
+  if (activeDragPayload !== null) return true;
   const types = event && event.dataTransfer && event.dataTransfer.types;
   if (!types) return false;
-  const list = Array.from(types);
-  return list.includes("application/x-weektodo-task") || list.includes("item");
+  const list = Array.from(types).map(t => String(t).toLowerCase());
+  return list.includes("application/x-weektodo-task") || list.includes("item") || list.includes("text/plain");
 }
 
 export function setDragPayload(event, { toDo, index, listId }) {
-  if (!event || !event.dataTransfer) return;
   const normalizedListId = listId || (toDo && toDo.listId) || "";
   const normalizedIndex = Number(index);
-  event.dataTransfer.effectAllowed = "move";
-  event.dataTransfer.setData("application/x-weektodo-task", JSON.stringify({
+  activeDragPayload = {
     listId: normalizedListId,
     index: normalizedIndex,
-    toDo,
-  }));
+    toDo: toDo || null,
+  };
+  if (!event || !event.dataTransfer) return;
+  event.dataTransfer.effectAllowed = "move";
+  const serialized = JSON.stringify(activeDragPayload);
+  event.dataTransfer.setData("application/x-weektodo-task", serialized);
   event.dataTransfer.setData("item", JSON.stringify(toDo));
   event.dataTransfer.setData("index", String(normalizedIndex));
 }
 
+export function clearDragPayload() {
+  activeDragPayload = null;
+}
+
 export function getDragPayload(event) {
   const dt = event && event.dataTransfer;
-  if (!dt) return null;
-  try {
-    const rawRich = dt.getData("application/x-weektodo-task");
-    if (rawRich) {
-      const parsed = JSON.parse(rawRich);
-      const index = Number(parsed.index);
-      if (parsed && parsed.listId && Number.isInteger(index) && index >= 0) {
-        return { listId: parsed.listId, index, toDo: parsed.toDo || null };
+  if (dt && typeof dt.getData === "function") {
+    try {
+      const rawRich = dt.getData("application/x-weektodo-task");
+      if (rawRich) {
+        const parsed = JSON.parse(rawRich);
+        const index = Number(parsed.index);
+        if (parsed && parsed.listId && Number.isInteger(index) && index >= 0) {
+          return { listId: parsed.listId, index, toDo: parsed.toDo || null };
+        }
       }
-    }
-    const rawItem = dt.getData("item");
-    const rawIndex = dt.getData("index");
-    if (rawItem && rawIndex !== "") {
-      const toDo = JSON.parse(rawItem);
-      const index = Number(rawIndex);
-      if (toDo && toDo.listId && Number.isInteger(index) && index >= 0) {
-        return { listId: toDo.listId, index, toDo };
+      const rawItem = dt.getData("item");
+      const rawIndex = dt.getData("index");
+      if (rawItem && rawIndex !== "") {
+        const toDo = JSON.parse(rawItem);
+        const index = Number(rawIndex);
+        if (toDo && toDo.listId && Number.isInteger(index) && index >= 0) {
+          return { listId: toDo.listId, index, toDo };
+        }
       }
+    } catch (e) {
+      // fall through to activeDragPayload
     }
-  } catch (e) {
-    return null;
+  }
+  if (activeDragPayload && activeDragPayload.listId && Number.isInteger(activeDragPayload.index) && activeDragPayload.index >= 0) {
+    return { ...activeDragPayload };
   }
   return null;
+}
+
+export function reorderGroupTasks(groupEntries, fromGroupIndex, targetGroupIndex, position = "before") {
+  const entries = Array.isArray(groupEntries) ? groupEntries : [];
+  const { moved, insertIndex } = computeReorderIndex(fromGroupIndex, targetGroupIndex, position);
+  if (!moved || fromGroupIndex >= entries.length || targetGroupIndex >= entries.length) {
+    return { moved: false, reordered: entries, affectedListIds: [], sameListReorder: null };
+  }
+  const movedEntry = entries[fromGroupIndex];
+  const targetEntry = entries[targetGroupIndex];
+  const reordered = [...entries];
+  reordered.splice(fromGroupIndex, 1);
+  reordered.splice(insertIndex, 0, movedEntry);
+  reordered.forEach((entry, idx) => {
+    if (entry && entry.task) {
+      entry.task.manualOrder = idx;
+    }
+  });
+  let sameListReorder = null;
+  if (movedEntry && targetEntry && movedEntry.listId === targetEntry.listId) {
+    const sameList = computeReorderIndex(movedEntry.index, targetEntry.index, position);
+    if (sameList.moved) {
+      sameListReorder = {
+        listId: movedEntry.listId,
+        fromIndex: movedEntry.index,
+        toIndex: sameList.insertIndex,
+      };
+    }
+  }
+  const affectedListIds = [...new Set(reordered.map(entry => entry && entry.listId).filter(Boolean))];
+  return { moved: true, reordered, affectedListIds, sameListReorder };
 }
 
 export function computeQuickDeadline(preset, options = {}) {

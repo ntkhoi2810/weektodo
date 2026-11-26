@@ -34,11 +34,19 @@
         :aria-pressed="selectedPreset === 'nextWeek'" @click="selectPreset('nextWeek')">
         <i class="bi-calendar-range" aria-hidden="true"></i> {{ $t('quickMove.nextWeek') }}
       </button>
-      <label class="quick-add-chip quick-add-date-chip" :class="{ active: selectedPreset === 'custom' }">
-        <i class="bi-calendar-event" aria-hidden="true"></i>
-        <span>{{ customDateLabel }}</span>
-        <input type="date" :value="customDate" :aria-label="$t('quickAdd.pickDate')" @change="onPickCustomDate($event.target.value)" />
-      </label>
+      <div class="quick-add-date-wrap">
+        <button type="button" class="quick-add-chip quick-add-date-chip"
+          :class="{ active: selectedPreset === 'custom' }"
+          :aria-pressed="selectedPreset === 'custom'"
+          @click="openDatePicker">
+          <i class="bi-calendar-event" aria-hidden="true"></i>
+          <span>{{ customDateLabel }}</span>
+        </button>
+        <input ref="dateInput" type="date" class="quick-add-native-date"
+          :class="{ 'is-visible': showInlineDate }"
+          :value="customDate" :aria-label="$t('quickAdd.pickDate')"
+          @change="onPickCustomDate($event.target.value)" />
+      </div>
       <button v-if="selectedPreset === 'custom'" type="button" class="quick-add-clear-date"
         :aria-label="$t('todoDetails.clearDate')" @click="clearCustomDate">
         <i class="bi-x" aria-hidden="true"></i>
@@ -68,6 +76,7 @@ export default {
       selectedPreset: this.defaultPreset || "none",
       customDate: "",
       userTouchedPreset: false,
+      showInlineDate: false,
     };
   },
   computed: {
@@ -97,18 +106,36 @@ export default {
     selectPreset(preset) {
       this.userTouchedPreset = true;
       this.selectedPreset = preset;
+      this.showInlineDate = false;
       this.$nextTick(() => this.focus());
+    },
+    openDatePicker() {
+      const input = this.$refs.dateInput;
+      if (input && typeof input.showPicker === "function") {
+        try {
+          input.showPicker();
+          return;
+        } catch (e) {
+          // fallback to visible inline date input
+        }
+      }
+      this.showInlineDate = !this.showInlineDate;
+      if (this.showInlineDate) {
+        this.$nextTick(() => input && input.focus());
+      }
     },
     onPickCustomDate(value) {
       if (!value || !moment(value, "YYYY-MM-DD", true).isValid()) return;
       this.userTouchedPreset = true;
       this.customDate = value;
       this.selectedPreset = "custom";
+      this.showInlineDate = false;
       this.$nextTick(() => this.focus());
     },
     clearCustomDate() {
       this.customDate = "";
       this.selectedPreset = "none";
+      this.showInlineDate = false;
       this.$nextTick(() => this.focus());
     },
     submit() {

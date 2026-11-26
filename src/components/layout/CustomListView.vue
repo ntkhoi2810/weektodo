@@ -60,6 +60,7 @@ import ToDoItem from "../toDoItem.vue";
 import QuickAddBar from "../QuickAddBar.vue";
 import { groupTasksByDeadline, isDateOverdue } from "../../helpers/deadline";
 import {
+  clearDragPayload,
   computeCrossListIndex,
   computeDropPosition,
   computeReorderIndex,
@@ -145,6 +146,7 @@ export default {
       this.groupDropHover = null;
 
       const payload = getDragPayload(event);
+      clearDragPayload();
       if (!payload) return;
 
       if (payload.listId === this.id) {
@@ -183,6 +185,7 @@ export default {
       this.groupDropHover = null;
 
       const payload = getDragPayload(event);
+      clearDragPayload();
       if (!payload) return;
 
       const lastEntry = groupTasks && groupTasks.length ? groupTasks[groupTasks.length - 1] : null;
