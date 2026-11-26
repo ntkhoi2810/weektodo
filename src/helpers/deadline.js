@@ -37,7 +37,8 @@ export function isTaskOverdue(task, now = moment()) {
   return isDateOverdue(task.deadlineDate, current);
 }
 
-export function groupTasksByDeadline(tasks) {
+export function groupTasksByDeadline(tasks, options = {}) {
+  const preserveManualOrder = !!(options && options.preserveManualOrder);
   const dated = new Map();
   const noDeadline = [];
   const completed = [];
@@ -50,9 +51,12 @@ export function groupTasksByDeadline(tasks) {
       dated.get(task.deadlineDate).push(entry);
     }
   });
-  const groups = [...dated.keys()].sort().map(date => ({
-    date,
-    tasks: dated.get(date).sort((a, b) => (a.task.deadlineTime || "99:99").localeCompare(b.task.deadlineTime || "99:99")),
-  }));
+  const groups = [...dated.keys()].sort().map(date => {
+    const items = dated.get(date);
+    if (!preserveManualOrder) {
+      items.sort((a, b) => (a.task.deadlineTime || "99:99").localeCompare(b.task.deadlineTime || "99:99"));
+    }
+    return { date, tasks: items };
+  });
   return { groups, noDeadline, completed };
 }

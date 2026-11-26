@@ -2,7 +2,7 @@
   <div class="workspace" :class="{ 'sidebar-visible': sidebarOpen, 'auto-hide': autoHideSidebar && isDesktop, 'day-view': viewMode === 'day', 'list-view': section === 'list' || section === 'all' }">
     <div v-if="sidebarOpen" class="workspace-sidebar-scrim" @click="sidebarOpen = false"></div>
     <div v-if="autoHideSidebar && isDesktop && !sidebarOpen" class="workspace-sidebar-edge"
-      aria-hidden="true" @pointerenter="openOnEdgeHover"></div>
+      aria-hidden="true" @pointerenter="openOnEdgeHover" @dragenter="openOnEdgeDrag"></div>
     <workspace-sidebar :open="sidebarOpen" :selected-date="selectedDate" :selected-list-id="selectedListId"
       :active-section="section"
       :show-calendar="showCalendar" :show-custom-list="showCustomList"
@@ -151,6 +151,10 @@ export default {
         this.cancelHide();
         this.sidebarOpen = true;
       }
+    },
+    openOnEdgeDrag() {
+      this.cancelHide();
+      this.sidebarOpen = true;
     },
     cancelHide() {
       if (this.hideTimer) clearTimeout(this.hideTimer);

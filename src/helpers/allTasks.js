@@ -172,7 +172,8 @@ export function groupAllTasksByDeadline(entries, now = moment()) {
   return { groups, completed };
 }
 
-export function groupAllTasksByList(entries, customLists = []) {
+export function groupAllTasksByList(entries, customLists = [], options = {}) {
+  const preserveManualOrder = !!(options && options.preserveManualOrder);
   const completed = [];
   const byList = new Map();
 
@@ -202,22 +203,24 @@ export function groupAllTasksByList(entries, customLists = []) {
   calendarKeys.sort();
 
   customKeys.forEach(listId => {
+    const items = byList.get(listId);
     groups.push({
       key: `list:${listId}`,
       kind: "custom",
       listId,
       name: customOrder.get(listId).name,
-      tasks: byList.get(listId).sort(compareEntries),
+      tasks: preserveManualOrder ? items : items.sort(compareEntries),
     });
   });
 
   calendarKeys.forEach(listId => {
+    const items = byList.get(listId);
     groups.push({
       key: `calendar:${listId}`,
       kind: "calendar",
       listId,
       name: listId,
-      tasks: byList.get(listId).sort(compareEntries),
+      tasks: preserveManualOrder ? items : items.sort(compareEntries),
     });
   });
 

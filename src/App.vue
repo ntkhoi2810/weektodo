@@ -20,6 +20,7 @@
       <reorder-custom-lists-modal @reset-custom-list="resetCustomList"></reorder-custom-lists-modal>
     </div>
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1056">
+      <toast-message id="taskMoved" :text="movedToastText" :sub-text="'(' + $t('ui.undo') + ')'" @subTextClick="undoMoveTask"></toast-message>
       <toast-message id="versionChanges" :text="$t('ui.softwareUpdated')" :sub-text="$t('ui.seeChanges')" @subTextClick="seeChangeLog"></toast-message>
       <toast-message id="newVersionAvailable" :text="$t('ui.newVersionAvailable')" :sub-text="$t('ui.download')" @subTextClick="downloadNewVersion"></toast-message>
       <toast-message id="copiedAddress" :text="$t('donate.copiedAddres')"></toast-message>
@@ -356,8 +357,41 @@ export default {
       ipcRenderer.send("set-run-in-background", this.$store.getters.config.runInBackground);
       ipcRenderer.send("set-dark-tray-icon", this.$store.getters.config.darkTrayIcon);
     },
+    undoMoveTask: async function () {
+      const undo = this.$store.getters.undoElement;
+      if (!undo || undo.type !== "move") return;
+      const targetList = this.$store.getters.todoLists[undo.toListId] || [];
+      const currentIndex = targetList.indexOf(undo.movedTask);
+      const fromIndex = currentIndex >= 0 ? currentIndex : undo.insertIndex;
+      if (fromIndex >= 0 && fromIndex < targetList.length) {
+        const patch = {
+          deadlineDate: undo.previousSnapshot.deadlineDate,
+          alarm: undo.previousSnapshot.alarm,
+          repeatingEvent: undo.previousSnapshot.repeatingEvent,
+        };
+        await this.$store.dispatch("moveTask", {
+          fromListId: undo.toListId,
+          fromIndex,
+          toListId: undo.fromListId,
+          toIndex: undo.fromIndex,
+          patch,
+        });
+        toDoListRepository.update(undo.toListId, this.$store.getters.todoLists[undo.toListId]);
+        toDoListRepository.update(undo.fromListId, this.$store.getters.todoLists[undo.fromListId]);
+        notifications.refreshDayNotifications(this, undo.fromListId);
+        notifications.refreshDayNotifications(this, undo.toListId);
+      }
+      this.$store.commit("setUndoElement", null);
+      const toastEl = document.getElementById("taskMoved");
+      if (toastEl) Toast.getOrCreateInstance(toastEl).hide();
+    },
   },
   computed: {
+    movedToastText: function () {
+      const undo = this.$store.getters.undoElement;
+      if (undo && undo.type === "move" && undo.toastMessage) return undo.toastMessage;
+      return this.$t("quickMove.moved");
+    },
     compatible: function () { return !!window.indexedDB; },
     zoom: function () {
       return this.$store.getters.config.zoom;

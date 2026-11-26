@@ -1,5 +1,5 @@
 <template>
-  <aside class="workspace-sidebar" :class="{ open }" aria-label="WeekToDo sidebar">
+  <aside class="workspace-sidebar" :class="{ open }" aria-label="WeekToDo sidebar" @dragleave="onSidebarDragLeave">
     <div class="workspace-brand"><img src="/weektodo-icon-mono.svg" alt="" /> <span>weektodo</span>
       <button v-if="desktop" type="button" class="workspace-sidebar-pin"
         :aria-label="$t(autoHide ? 'ui.pinSidebar' : 'ui.unpinSidebar')" :title="$t(autoHide ? 'ui.pinSidebar' : 'ui.unpinSidebar')"
@@ -20,8 +20,13 @@
       <div class="mini-calendar-grid">
         <span v-for="label in dayLabels" :key="label" class="mini-dow">{{ label }}</span>
         <button v-for="day in calendarDays" :key="day.key" type="button"
-          :class="{ outside: day.outside, today: day.today, selected: day.selected, 'has-tasks': day.hasTasks }"
-          :aria-label="day.label" :aria-pressed="day.selected" @click="$emit('change-date', day.key)">{{ day.number }}</button>
+          :class="{ outside: day.outside, today: day.today, selected: day.selected, 'has-tasks': day.hasTasks, 'is-drop-target': dropTargetKey === 'day:' + day.key }"
+          :aria-label="day.label" :aria-pressed="day.selected"
+          @click="$emit('change-date', day.key)"
+          @dragover.prevent="onDropZoneOver($event, 'day:' + day.key)"
+          @dragenter.prevent="onDropZoneOver($event, 'day:' + day.key)"
+          @dragleave="onDropZoneLeave($event, 'day:' + day.key)"
+          @drop.prevent="onCalendarDrop($event, day)">{{ day.number }}</button>
       </div>
     </div>
     <nav v-if="showCustomList || showCalendar" class="workspace-lists" :aria-label="$t('todoDetails.todoLists')">
@@ -36,8 +41,13 @@
       </button>
       <template v-if="showCustomList">
         <button v-for="list in lists" :key="list.listId" type="button" class="workspace-list-link"
-          :class="{ selected: activeSection === 'list' && selectedListId === list.listId }" :aria-pressed="activeSection === 'list' && selectedListId === list.listId"
-          @click="$emit('select-list', list.listId)">
+          :class="{ selected: activeSection === 'list' && selectedListId === list.listId, 'is-drop-target': dropTargetKey === 'list:' + list.listId }"
+          :aria-pressed="activeSection === 'list' && selectedListId === list.listId"
+          @click="$emit('select-list', list.listId)"
+          @dragover.prevent="onDropZoneOver($event, 'list:' + list.listId)"
+          @dragenter.prevent="onDropZoneOver($event, 'list:' + list.listId)"
+          @dragleave="onDropZoneLeave($event, 'list:' + list.listId)"
+          @drop.prevent="onListDrop($event, list)">
           <span class="workspace-list-dot"></span><span class="workspace-list-name">{{ list.listName || $t('generatedData.list1') }}</span>
           <span class="workspace-list-count">{{ pending(list.listId) }}</span>
         </button>
@@ -62,6 +72,8 @@ import moment from "moment";
 import customToDoListIdsRepository from "../../repositories/customToDoListIdsRepository";
 import toDoListRepository from "../../repositories/toDoListRepository";
 import { collectAllTasks, computeTaskSummary } from "../../helpers/allTasks";
+import { buildMovePatch, getDragPayload, isTaskDragEvent } from "../../helpers/taskOperations";
+import { moveTaskWithFeedback } from "../../helpers/taskActions";
 
 export default {
   name: "WorkspaceSidebar",
@@ -76,7 +88,7 @@ export default {
     desktop: Boolean,
   },
   emits: ["change-date", "select-list", "select-all", "list-created", "toggle-auto-hide"],
-  data() { return { calendarMonth: moment().startOf("month") }; },
+  data() { return { calendarMonth: moment().startOf("month"), dropTargetKey: null }; },
   computed: {
     lists() { return this.$store.getters.cTodoListIds || []; },
     allSummary() {
@@ -126,6 +138,50 @@ export default {
     },
     openConfigModal() { document.getElementById("config-general-tab").click(); },
     print() { window.print(); },
+    onSidebarDragLeave(event) {
+      if (!event.currentTarget.contains(event.relatedTarget)) {
+        this.dropTargetKey = null;
+      }
+    },
+    onDropZoneOver(event, key) {
+      if (!isTaskDragEvent(event)) return;
+      this.dropTargetKey = key;
+    },
+    onDropZoneLeave(event, key) {
+      if (!event.currentTarget.contains(event.relatedTarget) && this.dropTargetKey === key) {
+        this.dropTargetKey = null;
+      }
+    },
+    async onCalendarDrop(event, day) {
+      this.dropTargetKey = null;
+      const payload = getDragPayload(event);
+      if (!payload || payload.listId === day.key) return;
+      const patch = buildMovePatch(payload.toDo, day.key);
+      const label = day.today ? this.$t("ui.today") : moment(day.key, "YYYYMMDD", true).locale(this.$store.getters.config.language).format("D MMM");
+      await moveTaskWithFeedback(this, {
+        fromListId: payload.listId,
+        fromIndex: payload.index,
+        toListId: day.key,
+        toIndex: null,
+        patch,
+        showUndoToast: true,
+        toastMessage: this.$t("quickMove.movedTo", { target: label }),
+      });
+    },
+    async onListDrop(event, list) {
+      this.dropTargetKey = null;
+      const payload = getDragPayload(event);
+      if (!payload || payload.listId === list.listId) return;
+      const label = list.listName || this.$t("generatedData.list1");
+      await moveTaskWithFeedback(this, {
+        fromListId: payload.listId,
+        fromIndex: payload.index,
+        toListId: list.listId,
+        toIndex: null,
+        showUndoToast: true,
+        toastMessage: this.$t("quickMove.movedTo", { target: label }),
+      });
+    },
   },
 };
 </script>

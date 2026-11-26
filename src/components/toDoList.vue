@@ -10,15 +10,16 @@
 
     <list-header :id="id" :customTodoList="customTodoList" :cTodoListIndex="cTodoListIndex" :toDoList="toDoListState" @focus-day="$emit('focus-day', id)">
     </list-header>
-    <ul class="to-do-list">
+    <ul class="to-do-list" @dragleave="onListDragLeave">
       <li v-for="(toDo, index) in toDoListState" :key="index">
-        <div class="drop-zone" @drop="onDrop($event, id, index)" @dragover.prevent @dragenter.prevent>
-          <to-do-item :to-do="toDo" :index="index" :to-do-list-id="id"></to-do-item>
+        <div class="drop-zone" @drop.prevent="onDrop($event, id, index)" @dragover.prevent="onItemDragOver($event, index)" @dragenter.prevent="onItemDragOver($event, index)">
+          <to-do-item :to-do="toDo" :index="index" :to-do-list-id="id"
+            :drop-position="dropTarget && dropTarget.index === index ? dropTarget.position : ''"></to-do-item>
         </div>
       </li>
     </ul>
-    <div class="fake-drop-zone flex-grow-1 margin-bottom-2" @drop="onDropAtEnd($event, id)"
-      @dragenter.self="onDragenter" @dragleave.self="onDragleave" @dragover.prevent
+    <div class="fake-drop-zone flex-grow-1 margin-bottom-2" @drop.prevent="onDropAtEnd($event, id)"
+      @dragenter="onDragenter" @dragleave="onDragleave" @dragover.prevent="onEndDragOver"
       :class="{ 'fake-drag-hover': fakeItemsDragHover }">
       <div class="todo-item-container">
         <input class="todo-input new-todo-input" type="text" ref="newToDoInput" v-model="newToDo.text" :placeholder="$t('ui.newTask')" @blur="addToDo()"
@@ -36,7 +37,15 @@ import toDoListRepository from "../repositories/toDoListRepository";
 import listHeader from "./listHeader";
 import notifications from "../helpers/notifications";
 import repeatingEventHelper from "../helpers/repeatingEvents.js";
-import tasksHelper from "../helpers/tasksHelper";
+import {
+  buildMovePatch,
+  computeCrossListIndex,
+  computeDropPosition,
+  computeReorderIndex,
+  getDragPayload,
+  isTaskDragEvent,
+} from "../helpers/taskOperations";
+import { moveTaskWithFeedback, persistTodoList } from "../helpers/taskActions";
 
 export default {
   components: {
@@ -55,6 +64,7 @@ export default {
       newToDo: { text: "", checked: false },
       fakeItemCounts: 6,
       fakeItemsDragHover: false,
+      dropTarget: null,
       loading: false,
     };
   },
@@ -108,42 +118,73 @@ export default {
     moments: function (date) {
       return moment(date);
     },
-    onDrop: function (event, list, new_index) {
-      let toDo = JSON.parse(event.dataTransfer.getData("item"));
-      let index = event.dataTransfer.getData("index");
-      this.$store.commit("removeTodo", {
-        toDoListId: toDo.listId,
-        index: index,
-      });
-      this.updateTodoList(toDo.listId, this.$store.getters.todoLists[toDo.listId]);
-      if (toDo.listId != list) toDo.repeatingEvent = null;
-      toDo.listId = list;
-      this.$store.commit("insertTodo", {
-        toDoListId: list,
-        index: new_index,
-        toDo: toDo,
-      });
-      if(this.$store.getters.config.autoReorderTasks){
-        this.updateTodoList(list, tasksHelper.reorderTasksList(this.$store.getters.todoLists[list]));
-      } else {
-        this.updateTodoList(list, this.$store.getters.todoLists[list]);
+    onItemDragOver: function (event, index) {
+      if (!isTaskDragEvent(event)) return;
+      this.fakeItemsDragHover = false;
+      this.dropTarget = { index, position: computeDropPosition(event) };
+    },
+    onListDragLeave: function (event) {
+      if (!event.currentTarget.contains(event.relatedTarget)) {
+        this.dropTarget = null;
       }
     },
-    onDropAtEnd: function (event, list) {
-      let toDo = JSON.parse(event.dataTransfer.getData("item"));
-      let index = event.dataTransfer.getData("index");
-      this.$store.commit("removeTodo", { toDoListId: toDo.listId, index: index, });
-      this.updateTodoList(toDo.listId, this.$store.getters.todoLists[toDo.listId]);
-      if (toDo.listId != list) toDo.repeatingEvent = null;
-      toDo.listId = list;
-      this.$store.commit("addTodo", toDo);
-
-      if(this.$store.getters.config.autoReorderTasks){
-        this.updateTodoList(list, tasksHelper.reorderTasksList(this.$store.getters.todoLists[list]));
-      } else {
-        this.updateTodoList(list, this.$store.getters.todoLists[list]);
-      }
+    onEndDragOver: function (event) {
+      if (!isTaskDragEvent(event)) return;
+      this.dropTarget = null;
+      this.fakeItemsDragHover = true;
+    },
+    onDrop: async function (event, targetListId, targetIndex) {
+      const position = this.dropTarget && this.dropTarget.index === targetIndex
+        ? this.dropTarget.position
+        : computeDropPosition(event);
+      this.dropTarget = null;
       this.fakeItemsDragHover = false;
+
+      const payload = getDragPayload(event);
+      if (!payload) return;
+
+      if (payload.listId === targetListId) {
+        const { moved, insertIndex } = computeReorderIndex(payload.index, targetIndex, position);
+        if (!moved) return;
+        this.$store.commit("reorderTodo", { listId: targetListId, fromIndex: payload.index, toIndex: insertIndex });
+        persistTodoList(this, targetListId, { reorder: true });
+      } else {
+        const targetList = this.$store.getters.todoLists[targetListId] || [];
+        const insertIndex = computeCrossListIndex(targetIndex, position, targetList.length);
+        const patch = buildMovePatch(payload.toDo, targetListId);
+        await moveTaskWithFeedback(this, {
+          fromListId: payload.listId,
+          fromIndex: payload.index,
+          toListId: targetListId,
+          toIndex: insertIndex,
+          patch,
+        });
+      }
+    },
+    onDropAtEnd: async function (event, targetListId) {
+      this.fakeItemsDragHover = false;
+      this.dropTarget = null;
+
+      const payload = getDragPayload(event);
+      if (!payload) return;
+
+      if (payload.listId === targetListId) {
+        const list = this.$store.getters.todoLists[targetListId] || [];
+        if (!list.length) return;
+        const { moved, insertIndex } = computeReorderIndex(payload.index, list.length - 1, "after");
+        if (!moved) return;
+        this.$store.commit("reorderTodo", { listId: targetListId, fromIndex: payload.index, toIndex: insertIndex });
+        persistTodoList(this, targetListId, { reorder: true });
+      } else {
+        const patch = buildMovePatch(payload.toDo, targetListId);
+        await moveTaskWithFeedback(this, {
+          fromListId: payload.listId,
+          fromIndex: payload.index,
+          toListId: targetListId,
+          toIndex: null,
+          patch,
+        });
+      }
     },
     updateTodoList: function (todoListId, TodoList) {
       notifications.refreshDayNotifications(this, todoListId);
@@ -156,11 +197,15 @@ export default {
         this.fakeItemCounts = Math.floor(this.$refs.listContainer.clientHeight / 34);
       }
     },
-    onDragenter: function () {
+    onDragenter: function (event) {
+      if (!isTaskDragEvent(event)) return;
+      this.dropTarget = null;
       this.fakeItemsDragHover = true;
     },
-    onDragleave: function () {
-      this.fakeItemsDragHover = false;
+    onDragleave: function (event) {
+      if (!event.currentTarget.contains(event.relatedTarget)) {
+        this.fakeItemsDragHover = false;
+      }
     },
     clearRemovedRepeatingEvents: function () {
       if (this.customTodoList) return;

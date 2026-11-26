@@ -202,7 +202,8 @@
     "task": "Công việc",
     "Frecuency": "Tần suất",
     "print": "PDF / In",
-    "showAll": "Hiển thị tất cả"
+    "showAll": "Hiển thị tất cả",
+    "dropHereNoDeadline": "Kéo công việc vào đây để gỡ hạn chót"
   },
   "todoDetails": {
     "taskTitle": "Tiêu đề Công việc",
@@ -272,6 +273,18 @@
     "noMatches": "Không tìm thấy công việc phù hợp với bộ lọc.",
     "resetFilters": "Xóa bộ lọc",
     "targetList": "Thêm vào danh sách"
+  },
+  "quickMove": {
+    "title": "Chuyển nhanh",
+    "moveTo": "Chuyển công việc đến",
+    "nextWeek": "Tuần sau",
+    "pickDate": "Chọn ngày khác…",
+    "moved": "Đã chuyển công việc",
+    "movedTo": "Đã chuyển đến {target}"
+  },
+  "quickAdd": {
+    "noDeadline": "Không hạn",
+    "pickDate": "Chọn ngày"
   },
   "notifications": {
     "noPendingTasksToday": "Bạn không có công việc nào được lên lịch hôm nay.",

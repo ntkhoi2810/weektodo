@@ -202,7 +202,8 @@
     "copyTasks": "Copy Tasks",
     "task": "Task",
     "Frecuency": "Frecuency",
-    "showAll": "Show All"
+    "showAll": "Show All",
+    "dropHereNoDeadline": "Drop a task here to remove its deadline"
   },
   "todoDetails": {
     "taskTitle": "Task title",
@@ -272,6 +273,18 @@
     "noMatches": "No tasks match your current filters.",
     "resetFilters": "Reset filters",
     "targetList": "Add to list"
+  },
+  "quickMove": {
+    "title": "Quick move",
+    "moveTo": "Move task to",
+    "nextWeek": "Next week",
+    "pickDate": "Pick a date…",
+    "moved": "Task moved",
+    "movedTo": "Moved to {target}"
+  },
+  "quickAdd": {
+    "noDeadline": "No deadline",
+    "pickDate": "Pick date"
   },
   "notifications": {
     "noPendingTasksToday": "You have no scheduled tasks today.",

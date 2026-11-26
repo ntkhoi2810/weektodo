@@ -1,5 +1,13 @@
 ﻿<template>
-  <div class="board-task" :class="{ done: toDo.checked, 'has-color': toDo.color && toDo.color !== 'none', 'is-overdue': overdue }"
+  <div class="board-task"
+    :class="{
+      done: toDo.checked,
+      'has-color': toDo.color && toDo.color !== 'none',
+      'is-overdue': overdue,
+      'is-dragging': dragging,
+      'drop-before': dropPosition === 'before',
+      'drop-after': dropPosition === 'after',
+    }"
     :style="toDo.color && toDo.color !== 'none' ? { '--task-color': toDo.color } : {}"
     :draggable="!isTouch" @dragstart="startDrag" @dragend="endDrag">
     <button type="button" class="board-task-check" :aria-label="toDo.checked ? $t('ui.markIncomplete') : $t('ui.markComplete')"
@@ -20,7 +28,55 @@
         </button>
       </span>
     </div>
+    <button v-if="canQuickMove" ref="moveTrigger" type="button" class="board-task-move"
+      :aria-label="$t('quickMove.title')" :title="$t('quickMove.title')" :aria-expanded="moveMenuOpen"
+      @click.stop="toggleMoveMenu">
+      <i class="bi-arrow-right-circle"></i>
+    </button>
     <button type="button" class="board-task-more" :aria-label="$t('todoDetails.actions')" @click.stop="openDetails"><i class="bi-three-dots"></i></button>
+
+    <teleport to="#app-container">
+      <div v-if="moveMenuOpen" ref="moveMenu" class="quick-move-popover" :style="moveMenuStyle"
+        role="dialog" :aria-label="$t('quickMove.title')" @click.stop>
+        <div class="quick-move-header">{{ $t('quickMove.moveTo') }}</div>
+        <div v-if="showCalendar" class="quick-move-section">
+          <div class="quick-move-section-title">{{ $t('settings.calendar') }}</div>
+          <button type="button" class="quick-move-item" :disabled="toDoListId === todayKey"
+            @click="moveToTarget(todayKey, $t('ui.today'))">
+            <i class="bi-sun" aria-hidden="true"></i>
+            <span>{{ $t('ui.today') }}</span>
+            <i v-if="toDoListId === todayKey" class="bi-check2 quick-move-current"></i>
+          </button>
+          <button type="button" class="quick-move-item" :disabled="toDoListId === tomorrowKey"
+            @click="moveToTarget(tomorrowKey, $t('allTasks.tomorrow'))">
+            <i class="bi-sunrise" aria-hidden="true"></i>
+            <span>{{ $t('allTasks.tomorrow') }}</span>
+            <i v-if="toDoListId === tomorrowKey" class="bi-check2 quick-move-current"></i>
+          </button>
+          <button type="button" class="quick-move-item" :disabled="toDoListId === nextWeekKey"
+            @click="moveToTarget(nextWeekKey, $t('quickMove.nextWeek'))">
+            <i class="bi-calendar-range" aria-hidden="true"></i>
+            <span>{{ $t('quickMove.nextWeek') }}</span>
+            <i v-if="toDoListId === nextWeekKey" class="bi-check2 quick-move-current"></i>
+          </button>
+          <label class="quick-move-item quick-move-date">
+            <i class="bi-calendar-plus" aria-hidden="true"></i>
+            <span>{{ $t('quickMove.pickDate') }}</span>
+            <input type="date" @change="moveToPickedDate($event.target.value)" />
+          </label>
+        </div>
+        <div v-if="showCustomList && customLists.length" class="quick-move-section">
+          <div class="quick-move-section-title">{{ $t('todoDetails.todoLists') }}</div>
+          <button v-for="list in customLists" :key="list.listId" type="button" class="quick-move-item"
+            :disabled="list.listId === toDoListId"
+            @click="moveToTarget(list.listId, list.listName || $t('generatedData.list1'))">
+            <span class="quick-move-dot" aria-hidden="true"></span>
+            <span class="quick-move-name">{{ list.listName || $t('generatedData.list1') }}</span>
+            <i v-if="list.listId === toDoListId" class="bi-check2 quick-move-current"></i>
+          </button>
+        </div>
+      </div>
+    </teleport>
   </div>
 </template>
 
@@ -31,6 +87,8 @@ import toDoListRepository from "../repositories/toDoListRepository";
 import notifications from "../helpers/notifications";
 import tasksHelper from "../helpers/tasksHelper";
 import { isTaskOverdue } from "../helpers/deadline";
+import { buildMovePatch, computeNextWeekListId, setDragPayload } from "../helpers/taskOperations";
+import { moveTaskWithFeedback } from "../helpers/taskActions";
 import linkifyStr from "linkify-string";
 
 export default {
@@ -42,9 +100,25 @@ export default {
     sourceLabel: { required: false, default: "", type: String },
     sourceType: { required: false, default: "", type: String },
     isOverdue: { required: false, default: null, type: Boolean },
+    dropPosition: { required: false, default: "", type: String },
   },
-  data() { return { isTouch: window.matchMedia("(pointer: coarse)").matches }; },
+  data() {
+    return {
+      isTouch: window.matchMedia("(pointer: coarse)").matches,
+      dragging: false,
+      moveMenuOpen: false,
+      moveMenuStyle: {},
+    };
+  },
   computed: {
+    config() { return this.$store.getters.config; },
+    showCalendar() { return !!this.config.calendar; },
+    showCustomList() { return !!this.config.customList; },
+    customLists() { return this.$store.getters.cTodoListIds || []; },
+    canQuickMove() { return this.showCalendar || (this.showCustomList && this.customLists.length > 0); },
+    todayKey() { return moment().format("YYYYMMDD"); },
+    tomorrowKey() { return moment().add(1, "day").format("YYYYMMDD"); },
+    nextWeekKey() { return computeNextWeekListId({ weekStartOnMonday: this.config.weekStartOnMonday }); },
     notificationIndicator() { return this.$store.getters.config.notificationIndicator; },
     completedSubtasks() { return (this.toDo.subTaskList || []).filter(task => task.checked).length; },
     todoText() { return linkifyStr(this.toDo.text, { target: "_blank", defaultProtocol: "https" }); },
@@ -57,6 +131,18 @@ export default {
       return !!(this.toDo.deadlineDate || this.toDo.deadlineTime || this.overdue ||
         (this.toDo.subTaskList && this.toDo.subTaskList.length) || this.toDo.alarm || this.sourceLabel);
     },
+  },
+  watch: {
+    toDo() {
+      this.dragging = false;
+      this.closeMoveMenu();
+    },
+    index() {
+      this.dragging = false;
+    },
+  },
+  beforeUnmount() {
+    this.detachMenuListeners();
   },
   methods: {
     dateFormat(date) { return moment(date, "YYYY-MM-DD").locale(this.$store.getters.config.language).format("D MMM"); },
@@ -75,17 +161,88 @@ export default {
     },
     openDetails(event) {
       if (event && event.target && event.target.closest && event.target.closest("a")) return;
+      this.closeMoveMenu();
       this.$store.commit("actionsSelectedTodoIdUpdate", { toDo: this.toDo, index: this.index });
       const element = document.getElementById("toDoModal");
       Modal.getOrCreateInstance(element, { keyboard: false }).show();
     },
-    startDrag(event) {
-      event.dataTransfer.effectAllowed = "move";
-      event.dataTransfer.setData("item", JSON.stringify(this.toDo));
-      event.dataTransfer.setData("index", this.index);
-      document.getElementById("app-container").classList.add("dragging-item");
+    toggleMoveMenu(event) {
+      if (this.moveMenuOpen) {
+        this.closeMoveMenu();
+        return;
+      }
+      const trigger = event.currentTarget || this.$refs.moveTrigger;
+      const rect = trigger.getBoundingClientRect();
+      const menuWidth = 236;
+      const estimatedHeight = 320;
+      const left = Math.max(10, Math.min(window.innerWidth - menuWidth - 10, rect.right - menuWidth));
+      const openAbove = rect.bottom + estimatedHeight > window.innerHeight - 10 && rect.top > estimatedHeight;
+      this.moveMenuStyle = openAbove
+        ? { left: `${left}px`, bottom: `${window.innerHeight - rect.top + 6}px`, top: "auto" }
+        : { left: `${left}px`, top: `${Math.min(window.innerHeight - 60, rect.bottom + 6)}px`, bottom: "auto" };
+      this.moveMenuOpen = true;
+      this.$nextTick(() => this.attachMenuListeners());
     },
-    endDrag() { document.getElementById("app-container").classList.remove("dragging-item"); },
+    closeMoveMenu() {
+      if (!this.moveMenuOpen) return;
+      this.moveMenuOpen = false;
+      this.detachMenuListeners();
+    },
+    attachMenuListeners() {
+      document.addEventListener("pointerdown", this.onMenuOutsideClick);
+      document.addEventListener("keydown", this.onMenuKeyDown);
+      window.addEventListener("scroll", this.closeMoveMenu, true);
+      window.addEventListener("resize", this.closeMoveMenu);
+    },
+    detachMenuListeners() {
+      document.removeEventListener("pointerdown", this.onMenuOutsideClick);
+      document.removeEventListener("keydown", this.onMenuKeyDown);
+      window.removeEventListener("scroll", this.closeMoveMenu, true);
+      window.removeEventListener("resize", this.closeMoveMenu);
+    },
+    onMenuOutsideClick(event) {
+      const menu = this.$refs.moveMenu;
+      const trigger = this.$refs.moveTrigger;
+      if ((menu && menu.contains(event.target)) || (trigger && trigger.contains(event.target))) return;
+      this.closeMoveMenu();
+    },
+    onMenuKeyDown(event) {
+      if (event.key === "Escape") this.closeMoveMenu();
+    },
+    async moveToTarget(targetListId, targetLabel) {
+      if (!targetListId || targetListId === this.toDoListId) return;
+      this.closeMoveMenu();
+      const patch = buildMovePatch(this.toDo, targetListId);
+      await moveTaskWithFeedback(this, {
+        fromListId: this.toDoListId,
+        fromIndex: this.index,
+        toListId: targetListId,
+        toIndex: null,
+        patch,
+        showUndoToast: true,
+        toastMessage: this.$t("quickMove.movedTo", { target: targetLabel }),
+      });
+    },
+    moveToPickedDate(isoDate) {
+      if (!isoDate) return;
+      const target = moment(isoDate, "YYYY-MM-DD", true);
+      if (!target.isValid()) return;
+      const targetListId = target.format("YYYYMMDD");
+      const label = target.clone().locale(this.config.language).format("D MMM");
+      this.moveToTarget(targetListId, label);
+    },
+    startDrag(event) {
+      this.closeMoveMenu();
+      this.dragging = true;
+      setDragPayload(event, { toDo: this.toDo, index: this.index, listId: this.toDoListId });
+      const appContainer = document.getElementById("app-container");
+      if (appContainer) appContainer.classList.add("dragging-item");
+    },
+    endDrag() {
+      this.dragging = false;
+      const appContainer = document.getElementById("app-container");
+      if (appContainer) appContainer.classList.remove("dragging-item");
+    },
   },
 };
 </script>

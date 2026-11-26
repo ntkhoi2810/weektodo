@@ -64,6 +64,34 @@ const mutations = {
     if (!state.todoLists[obj.toDoListId]) state.todoLists[obj.toDoListId] = [];
     state.todoLists[obj.toDoListId].splice(obj.index, 0, obj.toDo);
   },
+  reorderTodo(state, { listId, fromIndex, toIndex }) {
+    const list = state.todoLists[listId];
+    if (!Array.isArray(list)) return;
+    if (fromIndex < 0 || fromIndex >= list.length || toIndex < 0 || toIndex >= list.length) return;
+    if (fromIndex === toIndex) return;
+    const [moved] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, moved);
+  },
+  moveTodoBetweenLists(state, { fromListId, fromIndex, toListId, toIndex = null, patch = null }) {
+    const source = state.todoLists[fromListId];
+    if (!Array.isArray(source) || fromIndex < 0 || fromIndex >= source.length) return;
+    const [task] = source.splice(fromIndex, 1);
+    if (fromListId !== toListId) {
+      task.repeatingEvent = null;
+      task.listId = toListId;
+    }
+    if (patch && typeof patch === "object") {
+      Object.assign(task, patch);
+    }
+    if (!state.todoLists[toListId]) state.todoLists[toListId] = [];
+    const target = state.todoLists[toListId];
+    if (typeof toIndex === "number" && Number.isInteger(toIndex)) {
+      const clamped = Math.max(0, Math.min(target.length, toIndex));
+      target.splice(clamped, 0, task);
+    } else {
+      target.push(task);
+    }
+  },
   checkAllItems(state, toDoListId) {
     state.todoLists[toDoListId].forEach((toDo) => {
       toDo.checked = true;
@@ -169,6 +197,26 @@ const actions = {
         resolve({});
       };
     });
+  },
+  async moveTask({ state, commit, dispatch }, payload) {
+    const { fromListId, fromIndex, toListId, toIndex = null, patch = null } = payload || {};
+    if (!fromListId || !toListId) return null;
+    if (!state.todoLists[toListId]) {
+      await dispatch("loadTodoLists", toListId);
+    }
+    const sourceList = state.todoLists[fromListId];
+    if (!Array.isArray(sourceList) || fromIndex < 0 || fromIndex >= sourceList.length) return null;
+    const task = sourceList[fromIndex];
+    const previousSnapshot = {
+      listId: task.listId,
+      deadlineDate: task.deadlineDate,
+      alarm: task.alarm,
+      repeatingEvent: task.repeatingEvent,
+    };
+    commit("moveTodoBetweenLists", { fromListId, fromIndex, toListId, toIndex, patch });
+    const targetList = state.todoLists[toListId] || [];
+    const insertIndex = targetList.indexOf(task);
+    return { movedTask: task, fromListId, fromIndex, toListId, insertIndex, previousSnapshot };
   },
 };
 
