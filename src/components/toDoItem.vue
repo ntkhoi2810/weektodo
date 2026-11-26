@@ -61,14 +61,22 @@
               <i v-if="toDoListId === nextWeekKey" class="bi-check2 quick-move-current"></i>
             </button>
             <div class="quick-move-date-wrap">
-              <button type="button" class="quick-move-item quick-move-date-btn" @click="openMoveDatePicker">
+              <button type="button" class="quick-move-item quick-move-date-btn"
+                :class="{ active: showMoveCalendar }"
+                :aria-expanded="showMoveCalendar"
+                @click="toggleMoveCalendar">
                 <i class="bi-calendar-plus" aria-hidden="true"></i>
                 <span>{{ $t('quickMove.pickDate') }}</span>
+                <i :class="showMoveCalendar ? 'bi-chevron-up' : 'bi-chevron-down'" class="quick-move-caret" aria-hidden="true"></i>
               </button>
-              <input ref="moveDateInput" type="date" class="quick-move-native-date"
-                :class="{ 'is-visible': showMoveInlineDate }"
-                :aria-label="$t('quickMove.pickDate')"
-                @change="moveToPickedDate($event.target.value)" />
+              <date-picker-popover
+                v-if="showMoveCalendar"
+                :inline="true"
+                :model-value="currentTaskIsoDate"
+                :show-presets="false"
+                :show-footer="false"
+                :allow-clear="false"
+                @select="moveToPickedDate" />
             </div>
           </div>
           <div v-if="showCustomList && customLists.length" class="quick-move-section">
@@ -98,11 +106,13 @@ import toDoListRepository from "../repositories/toDoListRepository";
 import notifications from "../helpers/notifications";
 import tasksHelper from "../helpers/tasksHelper";
 import { isTaskOverdue } from "../helpers/deadline";
-import { buildMovePatch, clearDragPayload, computeNextWeekListId, setDragPayload } from "../helpers/taskOperations";
+import { buildMovePatch, clearDragPayload, computeNextWeekListId, isCalendarListId, setDragPayload } from "../helpers/taskOperations";
 import { moveTaskWithFeedback } from "../helpers/taskActions";
+import DatePickerPopover from "./DatePickerPopover.vue";
 import linkifyStr from "linkify-string";
 
 export default {
+  components: { DatePickerPopover },
   emits: ["open-source"],
   props: {
     toDo: { required: true, type: Object },
@@ -119,7 +129,7 @@ export default {
       dragging: false,
       moveMenuOpen: false,
       moveMenuStyle: {},
-      showMoveInlineDate: false,
+      showMoveCalendar: false,
       listFilterQuery: "",
     };
   },
@@ -128,6 +138,11 @@ export default {
     showCalendar() { return !!this.config.calendar; },
     showCustomList() { return !!this.config.customList; },
     customLists() { return this.$store.getters.cTodoListIds || []; },
+    currentTaskIsoDate() {
+      if (this.toDo.deadlineDate) return this.toDo.deadlineDate;
+      if (isCalendarListId(this.toDoListId)) return moment(this.toDoListId, "YYYYMMDD", true).format("YYYY-MM-DD");
+      return null;
+    },
     filteredCustomLists() {
       const q = (this.listFilterQuery || "").trim().toLowerCase();
       if (!q) return this.customLists;
@@ -189,11 +204,11 @@ export default {
         this.closeMoveMenu();
         return;
       }
-      this.showMoveInlineDate = false;
+      this.showMoveCalendar = false;
       this.listFilterQuery = "";
       const trigger = event.currentTarget || this.$refs.moveTrigger;
       const rect = trigger.getBoundingClientRect();
-      const menuWidth = 244;
+      const menuWidth = 252;
       const estimatedHeight = 360;
       const left = Math.max(10, Math.min(window.innerWidth - menuWidth - 10, rect.right - menuWidth));
       const openAbove = rect.bottom + estimatedHeight > window.innerHeight - 10 && rect.top > estimatedHeight;
@@ -202,24 +217,32 @@ export default {
         : { left: `${left}px`, top: `${Math.max(10, Math.min(window.innerHeight - 120, rect.bottom + 6))}px`, bottom: "auto" };
       this.moveMenuOpen = true;
       this.$nextTick(() => {
-        const menuEl = this.$refs.moveMenu;
-        if (menuEl) {
-          const actualHeight = menuEl.offsetHeight;
-          if (!openAbove && rect.bottom + actualHeight + 12 > window.innerHeight) {
-            if (rect.top > actualHeight + 12) {
-              this.moveMenuStyle = { left: `${left}px`, bottom: `${window.innerHeight - rect.top + 6}px`, top: "auto" };
-            } else {
-              this.moveMenuStyle = { left: `${left}px`, top: `${Math.max(10, window.innerHeight - actualHeight - 10)}px`, bottom: "auto" };
-            }
-          }
-        }
+        this.repositionMoveMenu();
         this.attachMenuListeners();
       });
+    },
+    repositionMoveMenu() {
+      const menuEl = this.$refs.moveMenu;
+      const trigger = this.$refs.moveTrigger;
+      if (!menuEl || !trigger) return;
+      const rect = trigger.getBoundingClientRect();
+      const menuWidth = 252;
+      const left = Math.max(10, Math.min(window.innerWidth - menuWidth - 10, rect.right - menuWidth));
+      const actualHeight = menuEl.offsetHeight;
+      if (rect.bottom + actualHeight + 12 > window.innerHeight) {
+        if (rect.top > actualHeight + 12) {
+          this.moveMenuStyle = { left: `${left}px`, bottom: `${window.innerHeight - rect.top + 6}px`, top: "auto" };
+        } else {
+          this.moveMenuStyle = { left: `${left}px`, top: `${Math.max(10, window.innerHeight - actualHeight - 10)}px`, bottom: "auto" };
+        }
+      } else {
+        this.moveMenuStyle = { left: `${left}px`, top: `${rect.bottom + 6}px`, bottom: "auto" };
+      }
     },
     closeMoveMenu() {
       if (!this.moveMenuOpen) return;
       this.moveMenuOpen = false;
-      this.showMoveInlineDate = false;
+      this.showMoveCalendar = false;
       this.detachMenuListeners();
     },
     attachMenuListeners() {
@@ -248,20 +271,9 @@ export default {
     onMenuKeyDown(event) {
       if (event.key === "Escape") this.closeMoveMenu();
     },
-    openMoveDatePicker() {
-      const input = this.$refs.moveDateInput;
-      if (input && typeof input.showPicker === "function") {
-        try {
-          input.showPicker();
-          return;
-        } catch (e) {
-          // fallback to visible inline date input
-        }
-      }
-      this.showMoveInlineDate = !this.showMoveInlineDate;
-      if (this.showMoveInlineDate) {
-        this.$nextTick(() => input && input.focus());
-      }
+    toggleMoveCalendar() {
+      this.showMoveCalendar = !this.showMoveCalendar;
+      this.$nextTick(() => this.repositionMoveMenu());
     },
     async moveToTarget(targetListId, targetLabel) {
       if (!targetListId || targetListId === this.toDoListId) return;

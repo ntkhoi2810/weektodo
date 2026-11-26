@@ -56,6 +56,33 @@ assert.strictEqual(taskOps.computeQuickDeadline("nextWeek", { now: thuNow, weekS
 assert.strictEqual(taskOps.computeNextWeekListId({ now: thuNow, weekStartOnMonday: true }), "20261130");
 assert.strictEqual(taskOps.computeQuickDeadline("2026-12-05", { now: thuNow }), "2026-12-05");
 
+// Modern calendar grid generation (respects weekStartOnMonday, today, selected, and pending tasks dot)
+const novGridMon = taskOps.buildCalendarMonthGrid("2026-11", {
+  now: thuNow,
+  selectedIso: "2026-11-28",
+  weekStartOnMonday: true,
+  language: "en",
+  todoLists: { "20261128": [{ text: "Pending", checked: false }] },
+});
+assert.strictEqual(novGridMon.monthKey, "2026-11");
+assert.strictEqual(novGridMon.weekdays.length, 7);
+assert.strictEqual(novGridMon.days.length, 42);
+assert.strictEqual(novGridMon.days[0].iso, "2026-10-26");
+assert.strictEqual(novGridMon.days[0].outside, true);
+const todayCell = novGridMon.days.find(d => d.iso === "2026-11-26");
+assert.strictEqual(todayCell.today, true);
+assert.strictEqual(todayCell.selected, false);
+const selectedCell = novGridMon.days.find(d => d.iso === "2026-11-28");
+assert.strictEqual(selectedCell.selected, true);
+assert.strictEqual(selectedCell.hasTasks, true);
+
+const novGridSun = taskOps.buildCalendarMonthGrid("2026-11", {
+  now: thuNow,
+  weekStartOnMonday: false,
+});
+assert.strictEqual(novGridSun.days[0].iso, "2026-11-01");
+assert.strictEqual(novGridSun.days.length, 35);
+
 // Build move patch avoids stale overdue badge when postponing to later calendar day
 assert.deepStrictEqual(
   taskOps.buildMovePatch({ deadlineDate: "2026-11-20" }, "20261126"),

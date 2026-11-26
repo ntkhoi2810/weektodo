@@ -171,3 +171,52 @@ export function buildMovePatch(task, toListId) {
   }
   return {};
 }
+
+export function buildCalendarMonthGrid(monthCursor, options = {}) {
+  const weekStartOnMonday = options.weekStartOnMonday !== false;
+  const language = options.language || "en";
+  const selectedIso = options.selectedIso || null;
+  const today = options.now ? moment(options.now).startOf("day") : moment().startOf("day");
+  const todayIso = today.format("YYYY-MM-DD");
+  const todoLists = options.todoLists || {};
+
+  const baseMonth = monthCursor && moment(monthCursor, ["YYYY-MM-DD", "YYYY-MM", "YYYYMMDD"], true).isValid()
+    ? moment(monthCursor, ["YYYY-MM-DD", "YYYY-MM", "YYYYMMDD"], true).startOf("month")
+    : (selectedIso && moment(selectedIso, "YYYY-MM-DD", true).isValid()
+      ? moment(selectedIso, "YYYY-MM-DD", true).startOf("month")
+      : today.clone().startOf("month"));
+
+  const firstDay = weekStartOnMonday ? 1 : 0;
+  const start = baseMonth.clone().subtract((baseMonth.day() - firstDay + 7) % 7, "days");
+  const end = baseMonth.clone().endOf("month");
+  const cellCount = Math.ceil((end.diff(start, "days") + 1) / 7) * 7;
+
+  const weekdays = Array.from({ length: 7 }, (_, i) =>
+    start.clone().add(i, "days").locale(language).format("dd")
+  );
+
+  const days = Array.from({ length: cellCount }, (_, i) => {
+    const date = start.clone().add(i, "days");
+    const iso = date.format("YYYY-MM-DD");
+    const listId = date.format("YYYYMMDD");
+    const listTasks = todoLists[listId] || [];
+    const hasTasks = listTasks.some(t => t && !t.checked);
+    return {
+      iso,
+      listId,
+      dayNumber: date.date(),
+      label: date.clone().locale(language).format("LL"),
+      outside: !date.isSame(baseMonth, "month"),
+      today: iso === todayIso,
+      selected: iso === selectedIso,
+      hasTasks,
+    };
+  });
+
+  return {
+    monthKey: baseMonth.format("YYYY-MM"),
+    monthLabel: baseMonth.clone().locale(language).format("MMMM YYYY"),
+    weekdays,
+    days,
+  };
+}

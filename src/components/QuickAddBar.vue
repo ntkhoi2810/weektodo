@@ -35,32 +35,41 @@
         <i class="bi-calendar-range" aria-hidden="true"></i> {{ $t('quickMove.nextWeek') }}
       </button>
       <div class="quick-add-date-wrap">
-        <button type="button" class="quick-add-chip quick-add-date-chip"
-          :class="{ active: selectedPreset === 'custom' }"
+        <button ref="dateBtn" type="button" class="quick-add-chip quick-add-date-chip"
+          :class="{ active: selectedPreset === 'custom' || datePopoverOpen }"
           :aria-pressed="selectedPreset === 'custom'"
-          @click="openDatePicker">
+          :aria-expanded="datePopoverOpen"
+          @click.stop="toggleDatePopover">
           <i class="bi-calendar-event" aria-hidden="true"></i>
           <span>{{ customDateLabel }}</span>
+          <i class="bi-chevron-down quick-add-date-caret" aria-hidden="true"></i>
         </button>
-        <input ref="dateInput" type="date" class="quick-add-native-date"
-          :class="{ 'is-visible': showInlineDate }"
-          :value="customDate" :aria-label="$t('quickAdd.pickDate')"
-          @change="onPickCustomDate($event.target.value)" />
       </div>
       <button v-if="selectedPreset === 'custom'" type="button" class="quick-add-clear-date"
         :aria-label="$t('todoDetails.clearDate')" @click="clearCustomDate">
         <i class="bi-x" aria-hidden="true"></i>
       </button>
     </div>
+
+    <teleport to="#app-container">
+      <div v-if="datePopoverOpen" ref="datePopover" class="quick-add-date-floating" :style="datePopoverStyle">
+        <date-picker-popover
+          :model-value="resolvedDeadline"
+          @select="onPickCustomDate"
+          @clear="clearCustomDate" />
+      </div>
+    </teleport>
   </form>
 </template>
 
 <script>
 import moment from "moment";
+import DatePickerPopover from "./DatePickerPopover.vue";
 import { computeQuickDeadline } from "../helpers/taskOperations";
 
 export default {
   name: "QuickAddBar",
+  components: { DatePickerPopover },
   props: {
     showTargetSelector: { type: Boolean, default: false },
     targetId: { type: String, default: "" },
@@ -76,7 +85,8 @@ export default {
       selectedPreset: this.defaultPreset || "none",
       customDate: "",
       userTouchedPreset: false,
-      showInlineDate: false,
+      datePopoverOpen: false,
+      datePopoverStyle: {},
     };
   },
   computed: {
@@ -99,6 +109,9 @@ export default {
       if (!this.userTouchedPreset) this.selectedPreset = val || "none";
     },
   },
+  beforeUnmount() {
+    this.detachPopoverListeners();
+  },
   methods: {
     focus() {
       if (this.$refs.input) this.$refs.input.focus();
@@ -106,36 +119,79 @@ export default {
     selectPreset(preset) {
       this.userTouchedPreset = true;
       this.selectedPreset = preset;
-      this.showInlineDate = false;
+      this.closeDatePopover();
       this.$nextTick(() => this.focus());
     },
-    openDatePicker() {
-      const input = this.$refs.dateInput;
-      if (input && typeof input.showPicker === "function") {
-        try {
-          input.showPicker();
-          return;
-        } catch (e) {
-          // fallback to visible inline date input
+    toggleDatePopover() {
+      if (this.datePopoverOpen) {
+        this.closeDatePopover();
+        return;
+      }
+      const btn = this.$refs.dateBtn;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const width = 264;
+      const estimatedHeight = 328;
+      const left = Math.max(12, Math.min(window.innerWidth - width - 12, rect.left));
+      const openAbove = rect.bottom + estimatedHeight > window.innerHeight - 12 && rect.top > estimatedHeight;
+      this.datePopoverStyle = openAbove
+        ? { left: `${left}px`, bottom: `${window.innerHeight - rect.top + 8}px`, top: "auto" }
+        : { left: `${left}px`, top: `${rect.bottom + 8}px`, bottom: "auto" };
+      this.datePopoverOpen = true;
+      this.$nextTick(() => {
+        const popEl = this.$refs.datePopover;
+        if (popEl) {
+          const actualHeight = popEl.offsetHeight;
+          if (!openAbove && rect.bottom + actualHeight + 12 > window.innerHeight && rect.top > actualHeight + 12) {
+            this.datePopoverStyle = { left: `${left}px`, bottom: `${window.innerHeight - rect.top + 8}px`, top: "auto" };
+          }
         }
-      }
-      this.showInlineDate = !this.showInlineDate;
-      if (this.showInlineDate) {
-        this.$nextTick(() => input && input.focus());
-      }
+        this.attachPopoverListeners();
+      });
+    },
+    closeDatePopover() {
+      if (!this.datePopoverOpen) return;
+      this.datePopoverOpen = false;
+      this.detachPopoverListeners();
+    },
+    attachPopoverListeners() {
+      document.addEventListener("pointerdown", this.onOutsideClick);
+      document.addEventListener("keydown", this.onKeyDown);
+      window.addEventListener("resize", this.closeDatePopover);
+      window.addEventListener("scroll", this.onWindowScroll, true);
+    },
+    detachPopoverListeners() {
+      document.removeEventListener("pointerdown", this.onOutsideClick);
+      document.removeEventListener("keydown", this.onKeyDown);
+      window.removeEventListener("resize", this.closeDatePopover);
+      window.removeEventListener("scroll", this.onWindowScroll, true);
+    },
+    onOutsideClick(event) {
+      const pop = this.$refs.datePopover;
+      const btn = this.$refs.dateBtn;
+      if ((pop && pop.contains(event.target)) || (btn && btn.contains(event.target))) return;
+      this.closeDatePopover();
+    },
+    onWindowScroll(event) {
+      const pop = this.$refs.datePopover;
+      if (pop && (event.target === pop || pop.contains(event.target))) return;
+      this.closeDatePopover();
+    },
+    onKeyDown(event) {
+      if (event.key === "Escape") this.closeDatePopover();
     },
     onPickCustomDate(value) {
       if (!value || !moment(value, "YYYY-MM-DD", true).isValid()) return;
       this.userTouchedPreset = true;
       this.customDate = value;
       this.selectedPreset = "custom";
-      this.showInlineDate = false;
+      this.closeDatePopover();
       this.$nextTick(() => this.focus());
     },
     clearCustomDate() {
       this.customDate = "";
       this.selectedPreset = "none";
-      this.showInlineDate = false;
+      this.closeDatePopover();
       this.$nextTick(() => this.focus());
     },
     submit() {
@@ -147,6 +203,7 @@ export default {
         deadlineDate: this.resolvedDeadline,
       });
       this.text = "";
+      this.closeDatePopover();
       this.$nextTick(() => this.focus());
     },
   },
